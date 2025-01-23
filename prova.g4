@@ -5,7 +5,10 @@
 grammar prova;
 
 // Regla sintactica
-inici :(~EOF)+ ;
+inici : estructuraGeneral EOF;
+//inici : (tipusDecl | accioFuncioDecl | blocVariables | sentencia)+ EOF ;
+//inici :(~EOF)+ ;
+
 
 // Regles Lexiques
 
@@ -25,17 +28,6 @@ TK_PC_PERIODE: 'periode';
 //TK_PC_PER: 'per';
 //TK_PC_SI: 'si';
 // TK_MESGRAN: '>';
-fragment
-DIGIT : '1' .. '9' ;
-fragment
-LLETRA : 'a' .. 'z' | 'A' .. 'Z' ;
-TK_ENTER : '0' | ('+' | '-')? DIGIT (DIGIT|'0')* ;
-TK_REAL : [+-]? DIGIT+ ('.' DIGIT+)? ([eE] [+-]? DIGIT+)? ; // Real
-TK_BOLEA: 'true' | 'false'; // Bolea
-TK_IDENT : LLETRA (LLETRA | DIGIT | '0' | '_' ) * ;
-TK_TIPUS_BASIC: TK_ENTER | TK_BOLEA | TK_REAL;
-
-// Tokens per fragment
 
 TK_TIPUS: 'tipus'; // Tipus
 TK_FTIPUS: 'ftipus'; // Ftipus
@@ -43,6 +35,23 @@ TK_PUNTS: ':'; // Punts
 TK_VECTOR: 'vector'; // Vectors
 TK_TUPLA: 'tupla;'; // Tupla
 TK_FTUPLA: 'ftupla;'; // Ftupla
+
+
+fragment
+DIGIT : '1' .. '9' ;
+fragment
+LLETRA : 'a' .. 'z' | 'A' .. 'Z' ;
+TK_ENTER : '0' | ('+' | '-')? DIGIT (DIGIT|'0')*;
+TK_REAL : [+-]? DIGIT+ ('.' DIGIT+)? ([eE] [+-]? DIGIT+)? ; // Real
+TK_BOLEA: 'true' | 'false'; // Bolea
+TK_TIPUS_BASIC: 'enter' | 'real' | 'boolea';
+// TK_ENTER: ENTER
+// TK_REAL: REAL
+// ENTER: '0' | ('+' | '-')? DIGIT (DIGIT|'0')*;
+
+
+// Tokens per fragment
+
 
 
 TK_ACCIO: 'accio'; // Accio
@@ -104,6 +113,15 @@ TK_ESCRIURE: 'escriure';
 
 TK_MIDA: 'mida';
 
+TK_IDENT : LLETRA (LLETRA | DIGIT | '0' | '_' ) * ;
+
+
+//Estructura Basica
+estructuraGeneral
+    :
+        tipusDecl? accioFuncioDecl? TK_PC_PROGRAMA blocVariables? sentencia+ TK_PC_FPROGRAMA
+    ;
+
 
 // Bloc de declaració de tipus
 tipusDecl
@@ -111,7 +129,7 @@ tipusDecl
     ;
 
 novaDefinicio
-    : TK_IDENT TK_PUNTS TK_VECTOR TK_TIPUS_BASIC TK_MIDA TK_ENTER (TK_COMA TK_ENTER)* TK_SEMI # DefinicioVector
+    : TK_IDENT TK_PUNTS TK_VECTOR TK_TIPUS_BASIC TK_ENTER TK_ENTER (TK_COMA TK_ENTER)* TK_SEMI # DefinicioVector
     | TK_IDENT TK_PUNTS TK_TUPLA TK_LBRACKET campTupla+ TK_RBRACKET TK_FTUPLA # DefinicioTupla
     ;
 
@@ -153,7 +171,7 @@ tipusDefinit
     | TK_IDENT
     ;
 
-// Estructures de control
+// Estructures de control sentencia
 sentencia
     : assignacio
     | condicional

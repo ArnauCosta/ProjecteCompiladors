@@ -1,0 +1,7 @@
+tipus
+    nom_tipus_nou: vector enter 10 10,11,12,13;
+ftipus
+
+programa
+    nom_variable := expr;
+fprograma
