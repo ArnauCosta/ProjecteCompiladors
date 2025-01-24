@@ -3,5 +3,5 @@ tipus
 ftipus
 
 programa
-    nom_variable := expr;
+    pepe := TRUE;
 fprograma

@@ -1,0 +1,4 @@
+asdf := 1+1;
+while true do
+    asdf2 := 1+1;
+ewhile

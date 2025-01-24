@@ -4,11 +4,29 @@
 
 grammar prova;
 
+@header {
+    import java.io.*;
+    import java.lang.Object;
+    import java.util.Vector;
+}
+
+@parser::members {
+    SymTable TS = new SymTable<Registre>(1001);
+    int contVar=0;
+    Bytecode x;
+    Boolean errorsem=false;
+    Long saltLinia;
+
+    public void notifyErrorListeners(Token offendingToken, String msg, RecognitionException e)    {
+      super.notifyErrorListeners(offendingToken,msg,e);
+      error=true;
+    }
+}
+
 // Regla sintactica
 inici : estructuraGeneral EOF;
 //inici : (tipusDecl | accioFuncioDecl | blocVariables | sentencia)+ EOF ;
 //inici :(~EOF)+ ;
-
 
 // Regles Lexiques
 
@@ -22,7 +40,7 @@ TK_RBRACKET: '}' ;
 // TK_STAR : '*' ;
 // TK_OP_PLUS : '+';
 TK_SEMI : ';' ;
-TK_PC_PROGRAMA: 'programa'  {System.out.println("he reconegut programa")};
+TK_PC_PROGRAMA: 'programa'  {System.out.println("he reconegut programa");};
 TK_PC_FPROGRAMA: 'fprograma'  ;
 TK_PC_PERIODE: 'periode';
 //TK_PC_PER: 'per';
@@ -49,9 +67,7 @@ TK_TIPUS_BASIC: 'enter' | 'real' | 'boolea';
 // TK_REAL: REAL
 // ENTER: '0' | ('+' | '-')? DIGIT (DIGIT|'0')*;
 
-
 // Tokens per fragment
-
 
 
 TK_ACCIO: 'accio'; // Accio
@@ -111,8 +127,6 @@ TK_FMENTRE: 'fmentre';
 TK_LLEGIR: 'llegir';
 TK_ESCRIURE: 'escriure';
 
-TK_MIDA: 'mida';
-
 TK_IDENT : LLETRA (LLETRA | DIGIT | '0' | '_' ) * ;
 
 
@@ -162,8 +176,15 @@ blocVariables
     ;
 
 declaracioVariable
-    : TK_IDENT (TK_COMA TK_IDENT)* TK_PUNTS tipusDefinit TK_SEMI
+    : TK_IDENT (TK_COMA TK_IDENT)* TK_PUNTS tipusDefinit TK_SEMI {
+        // Registrar todas las variables declaradas en la tabla de símbolos
+        TS.inserir($TK_IDENT.text, new Registre("variable", $tipusDefinit.text));
+        for (Token id : $TK_COMA) {
+            TS.inserir(id.getText(), new Registre("variable", $tipusDefinit.text));
+        }
+    }
     ;
+
 
 
 tipusDefinit
@@ -182,8 +203,14 @@ sentencia
     ;
 
 assignacio
-    : TK_IDENT TK_ASSIGNACIO expr TK_SEMI
+    : TK_IDENT TK_ASSIGNACIO expr TK_SEMI{
+        // Verificar si la variable existe en la tabla de símbolos
+        if (!TS.existeix($TK_IDENT.text)) {
+            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
+        }
+    }
     ;
+
 
 condicional
     : TK_SI expr TK_LLAVORS sentencia* (TK_ALTRAMENT expr TK_LLAVORS sentencia*)* (TK_ALTRAMENT sentencia*)? TK_FSI
