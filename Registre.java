@@ -15,7 +15,6 @@ public Registre() {
 	adreca=0;
 	}
 
-
 public Registre(String l) {
 	lexema=l;
 	tipus='I';

@@ -1,7 +1,9 @@
-tipus
-    nom_tipus_nou: vector enter 10 10,11,12,13;
-ftipus
+
 
 programa
+    variables
+        nom_tipus_nou, pepe, oaksdo: enter;
+    fvariables
     pepe := TRUE;
+    nom_tipus_nou := nom_tipus_nou+1;
 fprograma

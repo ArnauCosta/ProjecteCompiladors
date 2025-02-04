@@ -1,6 +1,7 @@
 import java.io.*;
 
 import org.antlr.v4.runtime.*;
+import sortida.*;
 
 
 //Jordi LANS Compiler. Exemple de classe i metode main

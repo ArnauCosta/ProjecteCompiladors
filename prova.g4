@@ -19,7 +19,18 @@ grammar prova;
 
     public void notifyErrorListeners(Token offendingToken, String msg, RecognitionException e)    {
       super.notifyErrorListeners(offendingToken,msg,e);
-      error=true;
+      errorsem=true;
+    }
+
+    private char checkType(char tipus1, char tipus2) {
+        if (tipus1 == 'F' && tipus2 == 'F') {
+            return 'F';
+        } else if ((tipus1 == 'F' || tipus2 == 'F') && ((tipus1 == 'I' || tipus2 == 'I'))){
+            return 'F';
+        } else if (tipus1 == 'I' && tipus2 == 'I') {
+            return 'I';
+        } else {
+        }
     }
 }
 
@@ -45,7 +56,7 @@ TK_PC_FPROGRAMA: 'fprograma'  ;
 TK_PC_PERIODE: 'periode';
 //TK_PC_PER: 'per';
 //TK_PC_SI: 'si';
-// TK_MESGRAN: '>';
+//TK_MESGRAN: '>';
 
 TK_TIPUS: 'tipus'; // Tipus
 TK_FTIPUS: 'ftipus'; // Ftipus
@@ -177,18 +188,28 @@ blocVariables
 
 declaracioVariable
     : TK_IDENT (TK_COMA TK_IDENT)* TK_PUNTS tipusDefinit TK_SEMI {
-        // Registrar todas las variables declaradas en la tabla de símbolos
-        TS.inserir($TK_IDENT.text, new Registre("variable", $tipusDefinit.text));
-        for (Token id : $TK_COMA) {
-            TS.inserir(id.getText(), new Registre("variable", $tipusDefinit.text));
-        }
+     // Registrar todas las variables declaradas en la tabla de símbolos
+        TS.inserir($TK_IDENT.text, new Registre("variable", $tipusDefinit.tipus)); // TODO: Afegir posicio de memoria on es desa
+//        for (Token id : $TK_COMA) {
+//            TS.inserir(id.getText(), new Registre("variable", $tipusDefinit.text));
+//        }
     }
     ;
 
 
 
-tipusDefinit
-    : TK_TIPUS_BASIC
+tipusDefinit returns [char tipus]
+    @init{ System.out.println("Entrem a la regla 'tipusDefinit'");}
+    @after{System.out.println("Sortim de la regla 'tipusDefinit'");}
+    : TK_TIPUS_BASIC {
+         if ($TK_TIPUS_BASIC.text.equals("enter")) {
+             $tipus='I';
+         } else if ($TK_TIPUS_BASIC.text.equals("real")) {
+             $tipus='F';
+         } else if ($TK_TIPUS_BASIC.text.equals("boolea")) {
+             $tipus='Z';
+         }
+     }
     | TK_IDENT
     ;
 
@@ -205,9 +226,9 @@ sentencia
 assignacio
     : TK_IDENT TK_ASSIGNACIO expr TK_SEMI{
         // Verificar si la variable existe en la tabla de símbolos
-        if (!TS.existeix($TK_IDENT.text)) {
-            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
-        }
+//        if (!TS.existeix($TK_IDENT.text)) {
+//            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
+//        }
     }
     ;
 
@@ -242,29 +263,44 @@ rang
     ;
 
 // Expressions
-expr
-    : expr2 ( ( TK_AND | TK_OR | TK_NEGACIO ) expr2)*
+expr returns [char tipus]
+    : expr2 ( ( TK_AND | TK_OR | TK_NEGACIO ) expr2)*{
+
+    }
     ;
 
-expr2
+expr2 returns [char tipus]
     : expr3 ( ( TK_IGUALTAT | TK_MES_GRAN | TK_MES_GRAN_IG | TK_MES_PETIT | TK_MES_PETIT_IG | TK_DESIGUALTAT) expr3) *
     ;
 
-expr3
-    : expr4 ( ( TK_SUMA | TK_RESTA ) expr4)*
+expr3 returns [char tipus]
+    : e1=expr4 ( ( TK_SUMA | TK_RESTA ) e2=expr4)* {
+            if (($e1.tipus == 'F') || ($e2.tipus == 'F')){
+                System.out.println("Test exp3");
+            }
+        }
     ;
 
-expr4
-    : expr5 ( ( TK_MULTIPLICACIO | TK_DIVISIO | TK_MODUL ) expr5)*
+expr4 returns [char tipus]
+    : e1=expr5 ( ( TK_MULTIPLICACIO | TK_DIVISIO | TK_MODUL ) e2=expr5)*
+    {
+        if (($e1.tipus == 'F') || ($e2.tipus == 'F')){
+            System.out.println("Test expr4");
+        }
+    }
     ;
 
-expr5
-    : exprbase ( ( TK_NEGACIO | TK_MENYS_UNARI ) exprbase)*
+expr5 returns [char tipus]
+    : e1=exprbase ( ( TK_NEGACIO | TK_MENYS_UNARI ) e2=exprbase)*
+    {
+        if (($e1.tipus == 'F') || ($e2.tipus == 'F')){
+            System.out.println("Test expr5");
+        }
+    }
     ;
 
-exprbase
-    : TK_TIPUS_BASIC
-    | TK_IDENT                // Identificador
+exprbase returns [char tipus]
+    : tipusDefinit
     | TK_LPAREN expr TK_RPAREN
     | cridaAccio //funcio
     | TK_IDENT TK_LCLAU expr3 TK_RCLAU TK_LCLAU expr3 TK_RCLAU //Acces vector
