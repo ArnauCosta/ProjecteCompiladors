@@ -196,51 +196,25 @@ public interface provaListener extends ParseTreeListener {
 	 */
 	void exitBucleMent(provaParser.BucleMentContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link provaParser#cridaAccio}.
+	 * Enter a parse tree produced by {@link provaParser#cridaAccioFuncio}.
 	 * @param ctx the parse tree
 	 */
-	void enterCridaAccio(provaParser.CridaAccioContext ctx);
+	void enterCridaAccioFuncio(provaParser.CridaAccioFuncioContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link provaParser#cridaAccio}.
+	 * Exit a parse tree produced by {@link provaParser#cridaAccioFuncio}.
 	 * @param ctx the parse tree
 	 */
-	void exitCridaAccio(provaParser.CridaAccioContext ctx);
+	void exitCridaAccioFuncio(provaParser.CridaAccioFuncioContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code Lectura}
-	 * labeled alternative in {@link provaParser#operacioLecturaEscritura}.
+	 * Enter a parse tree produced by {@link provaParser#operacioLecturaEscritura}.
 	 * @param ctx the parse tree
 	 */
-	void enterLectura(provaParser.LecturaContext ctx);
+	void enterOperacioLecturaEscritura(provaParser.OperacioLecturaEscrituraContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code Lectura}
-	 * labeled alternative in {@link provaParser#operacioLecturaEscritura}.
+	 * Exit a parse tree produced by {@link provaParser#operacioLecturaEscritura}.
 	 * @param ctx the parse tree
 	 */
-	void exitLectura(provaParser.LecturaContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code Escritura}
-	 * labeled alternative in {@link provaParser#operacioLecturaEscritura}.
-	 * @param ctx the parse tree
-	 */
-	void enterEscritura(provaParser.EscrituraContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code Escritura}
-	 * labeled alternative in {@link provaParser#operacioLecturaEscritura}.
-	 * @param ctx the parse tree
-	 */
-	void exitEscritura(provaParser.EscrituraContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code EscrituraLn}
-	 * labeled alternative in {@link provaParser#operacioLecturaEscritura}.
-	 * @param ctx the parse tree
-	 */
-	void enterEscrituraLn(provaParser.EscrituraLnContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code EscrituraLn}
-	 * labeled alternative in {@link provaParser#operacioLecturaEscritura}.
-	 * @param ctx the parse tree
-	 */
-	void exitEscrituraLn(provaParser.EscrituraLnContext ctx);
+	void exitOperacioLecturaEscritura(provaParser.OperacioLecturaEscrituraContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link provaParser#rang}.
 	 * @param ctx the parse tree

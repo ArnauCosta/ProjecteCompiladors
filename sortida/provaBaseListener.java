@@ -237,49 +237,25 @@ public class provaBaseListener implements provaListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterCridaAccio(provaParser.CridaAccioContext ctx) { }
+	@Override public void enterCridaAccioFuncio(provaParser.CridaAccioFuncioContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitCridaAccio(provaParser.CridaAccioContext ctx) { }
+	@Override public void exitCridaAccioFuncio(provaParser.CridaAccioFuncioContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLectura(provaParser.LecturaContext ctx) { }
+	@Override public void enterOperacioLecturaEscritura(provaParser.OperacioLecturaEscrituraContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitLectura(provaParser.LecturaContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterEscritura(provaParser.EscrituraContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitEscritura(provaParser.EscrituraContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterEscrituraLn(provaParser.EscrituraLnContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitEscrituraLn(provaParser.EscrituraLnContext ctx) { }
+	@Override public void exitOperacioLecturaEscritura(provaParser.OperacioLecturaEscrituraContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

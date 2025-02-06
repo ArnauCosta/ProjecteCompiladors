@@ -6,7 +6,6 @@ import sortida.*;
 
 //Jordi LANS Compiler. Exemple de classe i metode main
 public class main {
-	
 
 	public static void main(String args[]) throws Exception{
 		if(args.length == 0){

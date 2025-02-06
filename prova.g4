@@ -22,16 +22,27 @@ grammar prova;
       errorsem=true;
     }
 
-    private char checkType(char tipus1, char tipus2) {
-        if (tipus1 == 'F' && tipus2 == 'F') {
-            return 'F';
-        } else if ((tipus1 == 'F' || tipus2 == 'F') && ((tipus1 == 'I' || tipus2 == 'I'))){
-            return 'F';
-        } else if (tipus1 == 'I' && tipus2 == 'I') {
-            return 'I';
-        } else {
+    private char stringTypeToType(String type) {
+        char tipus = ' ';
+        if (type.equals("enter")) {
+            tipus='I';
+        } else if (type.equals("real")) {
+            tipus='F';
+        } else if (type.equals("boolea")) {
+            tipus='Z';
         }
+        return tipus;
     }
+
+//    private char checkType(char tipus1, char tipus2) {
+//        if (tipus1 == 'F' && tipus2 == 'F') {
+//            return 'F';
+//        } else if ((tipus1 == 'F' || tipus2 == 'F') && ((tipus1 == 'I' || tipus2 == 'I'))){
+//            return 'F';
+//        } else if (tipus1 == 'I' && tipus2 == 'I') {
+//            return 'I';
+//        }
+//    }
 }
 
 // Regla sintactica
@@ -143,8 +154,7 @@ TK_IDENT : LLETRA (LLETRA | DIGIT | '0' | '_' ) * ;
 
 //Estructura Basica
 estructuraGeneral
-    :
-        tipusDecl? accioFuncioDecl? TK_PC_PROGRAMA blocVariables? sentencia+ TK_PC_FPROGRAMA
+    : tipusDecl? accioFuncioDecl? TK_PC_PROGRAMA blocVariables? sentencia+ TK_PC_FPROGRAMA
     ;
 
 
@@ -163,17 +173,29 @@ campTupla
     ;
 
 // Bloc d'accions i funcions
-accioFuncioDecl
-    : accioDecl
-    | funcioDecl
+accioFuncioDecl //TODO
+    : accioDecl+
+    | funcioDecl+
     ;
 
 accioDecl
-    : TK_ACCIO TK_IDENT (TK_LPAREN parametresFormals? TK_RPAREN)? blocVariables? sentencia* TK_FACCIO
+    : TK_ACCIO id=TK_IDENT (TK_LPAREN parametresFormals? TK_RPAREN)? blocVariables? sentencia* TK_FACCIO{
+            if (TS.existeix($id.text)) {
+                notifyErrorListeners($id, "Error: Nom ja utilitzat.", null);
+            } else {
+                TS.inserir($id.text, new Registre("funcio", 'V'));
+            }
+    }
     ;
 
 funcioDecl
-    : TK_FUNCIO TK_IDENT (TK_LPAREN parametresFormals? TK_RPAREN)? TK_RETORNA TK_TIPUS_BASIC blocVariables? sentencia* TK_RETORNA expr TK_FFUNCIO
+    : TK_FUNCIO id=TK_IDENT (TK_LPAREN parametresFormals? TK_RPAREN)? TK_RETORNA TK_TIPUS_BASIC blocVariables? sentencia* TK_RETORNA expr TK_FFUNCIO {
+        if (TS.existeix($id.text)) {
+            notifyErrorListeners($id, "Error: Nom ja utilitzat.", null);
+        } else {
+            TS.inserir($id.text, new Registre("funcio", stringTypeToType($TK_TIPUS_BASIC.text)));
+        }
+    }
     ;
 
 parametresFormals
@@ -187,20 +209,30 @@ blocVariables
     ;
 
 declaracioVariable
-    : TK_IDENT (TK_COMA TK_IDENT)* TK_PUNTS tipusDefinit TK_SEMI {
-     // Registrar todas las variables declaradas en la tabla de símbolos
-        TS.inserir($TK_IDENT.text, new Registre("variable", $tipusDefinit.tipus)); // TODO: Afegir posicio de memoria on es desa
-//        for (Token id : $TK_COMA) {
-//            TS.inserir(id.getText(), new Registre("variable", $tipusDefinit.text));
-//        }
+    : id1=TK_IDENT (TK_COMA id2+=TK_IDENT)* TK_PUNTS tipusDefinit TK_SEMI
+    {
+        // Comprovem si la variable ja ha estat declarada
+        if (TS.existeix($id1.text)) {
+            notifyErrorListeners($id1, "Error: Variable ja declarada.", null);
+        } else {
+            TS.inserir($id1.text, new Registre("variable", $tipusDefinit.tipus));
+        }
+
+        // Recorrem totes les variables separades per coma
+        for (Token identificador : $id2) {
+            System.out.println("Identificadors: " + identificador.getText());
+            if (TS.existeix(identificador.getText())) {
+                notifyErrorListeners(identificador, "Error: Variable '" + identificador.getText() + "' ja declarada.", null);
+            } else {
+                TS.inserir(identificador.getText(), new Registre("variable", $tipusDefinit.tipus));
+            }
+        }
     }
     ;
 
 
 
 tipusDefinit returns [char tipus]
-    @init{ System.out.println("Entrem a la regla 'tipusDefinit'");}
-    @after{System.out.println("Sortim de la regla 'tipusDefinit'");}
     : TK_TIPUS_BASIC {
          if ($TK_TIPUS_BASIC.text.equals("enter")) {
              $tipus='I';
@@ -211,6 +243,15 @@ tipusDefinit returns [char tipus]
          }
      }
     | TK_IDENT
+    {
+        // Verificar si la variable existe en la tabla de símbolos
+        if (!TS.existeix($TK_IDENT.text)) {
+            System.out.println("No existeix: " + $TK_IDENT.text);
+            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
+        } else {
+            System.out.println("Existeix: " + $TK_IDENT.text);
+        }
+    }
     ;
 
 // Estructures de control sentencia
@@ -219,90 +260,184 @@ sentencia
     | condicional
     | buclePer
     | bucleMent
-    | cridaAccio
+    | cridaAccioFuncio
     | operacioLecturaEscritura
     ;
 
 assignacio
-    : TK_IDENT TK_ASSIGNACIO expr TK_SEMI{
+    : TK_IDENT TK_ASSIGNACIO expr TK_SEMI {
         // Verificar si la variable existe en la tabla de símbolos
-//        if (!TS.existeix($TK_IDENT.text)) {
-//            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
-//        }
+        if (!TS.existeix($TK_IDENT.text)) {
+            System.out.println("No existeix: " + $TK_IDENT.text);
+            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
+        } else {
+            System.out.println("Existeix: " + $TK_IDENT.text);
+            Registre r = (Registre) TS.obtenir($TK_IDENT.text);
+            if ($expr.tipus != r.getTipus() && !(r.getTipus() == 'F' && $expr.tipus == 'I')){
+                notifyErrorListeners($TK_IDENT, "Error: Type missmatch. " + $expr.tipus + " type cannot be casted to " + r.getTipus(), null);
+            }
+        }
     }
     ;
 
 
 condicional
-    : TK_SI expr TK_LLAVORS sentencia* (TK_ALTRAMENT expr TK_LLAVORS sentencia*)* (TK_ALTRAMENT sentencia*)? TK_FSI
+    : TK_SI e1=expr TK_LLAVORS sentencia* (TK_ALTRAMENT e2+=expr TK_LLAVORS sentencia*)* (TK_ALTRAMENT sentencia*)? TK_FSI
+    {
+        System.out.println("Primer: " + $e1.tipus);
+        if($e1.tipus != 'Z'){
+            notifyErrorListeners($e1.start, "Expr not boolean", null);
+        }
+        for (ExprContext ctx : $e2) {
+            System.out.println("Segon: " + ctx.tipus);
+            if(ctx.tipus != 'Z'){
+                notifyErrorListeners(ctx.start, "Expr not boolean", null);
+            }
+        }
+    }
     ;
 
 buclePer
-    : TK_PER TK_IDENT TK_EN rang TK_FER sentencia* TK_FPER
+    : TK_PER TK_IDENT TK_EN r=rang TK_FER sentencia* TK_FPER
     ;
 
 bucleMent
     : TK_MENTRE expr TK_FER sentencia+ TK_FMENTRE
+    {
+        if ($expr.tipus != 'Z'){
+            notifyErrorListeners($expr.start, "Expr not boolean", null);
+        }
+    }
     ;
 
-cridaAccio
+cridaAccioFuncio
     : TK_IDENT TK_LPAREN expr (TK_COMA expr)* TK_RPAREN TK_SEMI
     ;
 
+
 // Operacions de lectura i escriptura
 operacioLecturaEscritura
-    : TK_LLEGIR TK_LPAREN TK_IDENT (TK_PUNTS TK_TIPUS_BASIC)? TK_RPAREN TK_SEMI # Lectura
-    | TK_ESCRIURE TK_LPAREN expr (TK_COMA expr)* TK_RPAREN TK_SEMI # Escritura
-    | TK_ESCRIURE TK_LN TK_LPAREN (expr (TK_COMA expr)*)? TK_RPAREN TK_SEMI # EscrituraLn
+    : TK_LLEGIR TK_LPAREN TK_IDENT (TK_PUNTS TK_TIPUS_BASIC)? TK_RPAREN TK_SEMI // Lectura
+    | TK_ESCRIURE TK_LPAREN expr (TK_COMA expr)* TK_RPAREN TK_SEMI // Escritura
+    | TK_ESCRIURE TK_LN TK_LPAREN (expr (TK_COMA expr)*)? TK_RPAREN TK_SEMI // EscrituraLn
     ;
 
 // Rang del bucle 'per'
 rang
-    : TK_ENTER TK_DOSPUNTS TK_ENTER
-    | TK_ENTER
+    : TK_ENTER (TK_COMA TK_ENTER)?
     ;
 
 // Expressions
 expr returns [char tipus]
-    : expr2 ( ( TK_AND | TK_OR | TK_NEGACIO ) expr2)*{
-
+    : e1=expr2 ( ( TK_AND | TK_OR | TK_NEGACIO ) e2=expr2)*
+    {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+        } else if (($e1.tipus != 'Z')) {
+            notifyErrorListeners($e1.start, "Expr not boolean", null);
+        } else if ($e2.tipus != 'Z'){
+            notifyErrorListeners($e2.start, "Expr not boolean", null);
+        } else {
+            $tipus = 'Z';
+        }
     }
     ;
 
 expr2 returns [char tipus]
-    : expr3 ( ( TK_IGUALTAT | TK_MES_GRAN | TK_MES_GRAN_IG | TK_MES_PETIT | TK_MES_PETIT_IG | TK_DESIGUALTAT) expr3) *
+    : e1=expr3 ( ( TK_MES_GRAN | TK_MES_GRAN_IG | TK_MES_PETIT | TK_MES_PETIT_IG) e2=expr3) *
+    {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+        } else if ($e1.tipus != 'Z') {
+            notifyErrorListeners($e1.start, "Expr not boolean", null);
+        } else if ($e2.tipus != 'Z') {
+            notifyErrorListeners($e2.start, "Expr not boolean", null);
+        } else if (($e1.tipus == $e2.tipus)) {
+            $tipus = $e1.tipus;
+        } else if (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F')){
+            $tipus = 'F';
+        }
+    }
+    | e1=expr3 ( ( TK_IGUALTAT | TK_DESIGUALTAT) e2=expr3) *
+    {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+        } else if (($e1.tipus == $e2.tipus)) {
+            $tipus = $e1.tipus;
+        } else if (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F')){
+            $tipus = 'F';
+        } else {
+            notifyErrorListeners($e1.start, "Not matching expresions for comparing", null);
+        }
+    }
     ;
+
 
 expr3 returns [char tipus]
-    : e1=expr4 ( ( TK_SUMA | TK_RESTA ) e2=expr4)* {
-            if (($e1.tipus == 'F') || ($e2.tipus == 'F')){
-                System.out.println("Test exp3");
-            }
+    : e1=expr4 ( ( TK_SUMA | TK_RESTA ) e2=expr4 )*
+    {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
+        } else if (($e1.tipus == 'F') || ($e2.tipus == 'F') ){
+            $tipus = 'F';
+        } else {
+            $tipus = 'I';
         }
+    }
     ;
+
 
 expr4 returns [char tipus]
-    : e1=expr5 ( ( TK_MULTIPLICACIO | TK_DIVISIO | TK_MODUL ) e2=expr5)*
+    : e1=expr5 (( TK_MULTIPLICACIO | TK_DIVISIO | TK_MODUL ) e2=expr5)*
     {
-        if (($e1.tipus == 'F') || ($e2.tipus == 'F')){
-            System.out.println("Test expr4");
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
+        } else if (($e1.tipus == 'F') || ($e2.tipus == 'F') ){
+            $tipus = 'F';
+        } else {
+            $tipus = 'I';
         }
     }
     ;
 
+
 expr5 returns [char tipus]
-    : e1=exprbase ( ( TK_NEGACIO | TK_MENYS_UNARI ) e2=exprbase)*
-    {
-        if (($e1.tipus == 'F') || ($e2.tipus == 'F')){
-            System.out.println("Test expr5");
+    : exprbase {
+        $tipus = $exprbase.tipus;
+    }
+    | (TK_NEGACIO exprbase) {
+        if ($exprbase.tipus != 'Z') {
+            notifyErrorListeners($exprbase.start, "Expr must be boolean", null);
+        }
+    }
+    | (TK_MENYS_UNARI exprbase) {
+        if ($exprbase.tipus != 'F' && $exprbase.tipus != 'I') {
+            notifyErrorListeners($exprbase.start, "Expr must be Int or Float", null);
         }
     }
     ;
+
+
 
 exprbase returns [char tipus]
     : tipusDefinit
-    | TK_LPAREN expr TK_RPAREN
-    | cridaAccio //funcio
+    | TK_LPAREN expr TK_RPAREN {
+        $tipus = $expr.tipus;
+    }
+    | cridaAccioFuncio//funcio
     | TK_IDENT TK_LCLAU expr3 TK_RCLAU TK_LCLAU expr3 TK_RCLAU //Acces vector
     | TK_IDENT TK_PUNT TK_IDENT //Tupla
+    | TK_ENTER{
+        $tipus='I';
+    }
+    | TK_REAL {
+        $tipus='F';
+    }
+    | TK_BOLEA {
+        $tipus='Z';
+    }
     ;
