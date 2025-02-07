@@ -5,9 +5,6 @@ programa
         aixo_es_un_real: real;
         aixo_es_un_bool: boolea;
     fvariables
-
-    aixo_es_un_real:= 1;
-    oaksdo:= 1.2342;
     aixo_es_un_bool := true;
     nom_tipus_nou := 4 - a + b - 3 == ((4 - a) + b) - 3;
 

@@ -12,8 +12,9 @@ grammar prova;
 
 @parser::members {
     SymTable TS = new SymTable<Registre>(1001);
-    int contVar=0;
-    Bytecode x;
+    Bytecode bc=new Bytecode("Lans");
+    Vector<Long> codeMain=new Vector<Long>(1000);
+    int contadorVariables=0;
     Boolean errorsem=false;
     Long saltLinia;
 
@@ -215,7 +216,9 @@ declaracioVariable
         if (TS.existeix($id1.text)) {
             notifyErrorListeners($id1, "Error: Variable ja declarada.", null);
         } else {
-            TS.inserir($id1.text, new Registre("variable", $tipusDefinit.tipus));
+            int adreca = contadorVariables;
+            TS.inserir($id1.text, new Registre("variable", $tipusDefinit.tipus, adreca));
+            contadorVariables++;
         }
 
         // Recorrem totes les variables separades per coma
@@ -249,7 +252,10 @@ tipusDefinit returns [char tipus]
             System.out.println("No existeix: " + $TK_IDENT.text);
             notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
         } else {
-            System.out.println("Existeix: " + $TK_IDENT.text);
+            Registre r = TS.obtenir($TK_IDENT.text)
+            codeMain.add(bc.ILOAD);
+            codeMain.add(new Long(r.getAdreca()));
+            System.out.println("Existeix molt: " + $TK_IDENT.text);
         }
     }
     ;
@@ -279,7 +285,6 @@ assignacio
         }
     }
     ;
-
 
 condicional
     : TK_SI e1=expr TK_LLAVORS sentencia* (TK_ALTRAMENT e2+=expr TK_LLAVORS sentencia*)* (TK_ALTRAMENT sentencia*)? TK_FSI

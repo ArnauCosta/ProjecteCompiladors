@@ -131,8 +131,8 @@ public class provaParser extends Parser {
 
 
 	    SymTable TS = new SymTable<Registre>(1001);
-	    int contVar=0;
-	    Bytecode x;
+	    Bytecode bc=new Bytecode("Lans");
+	    int contadorVariables=0;
 	    Boolean errorsem=false;
 	    Long saltLinia;
 
@@ -1098,7 +1098,9 @@ public class provaParser extends Parser {
 			        if (TS.existeix((((DeclaracioVariableContext)_localctx).id1!=null?((DeclaracioVariableContext)_localctx).id1.getText():null))) {
 			            notifyErrorListeners(((DeclaracioVariableContext)_localctx).id1, "Error: Variable ja declarada.", null);
 			        } else {
-			            TS.inserir((((DeclaracioVariableContext)_localctx).id1!=null?((DeclaracioVariableContext)_localctx).id1.getText():null), new Registre("variable", ((DeclaracioVariableContext)_localctx).tipusDefinit.tipus));
+			            int adreca = contadorVariables;
+			            TS.inserir((((DeclaracioVariableContext)_localctx).id1!=null?((DeclaracioVariableContext)_localctx).id1.getText():null), new Registre("variable", ((DeclaracioVariableContext)_localctx).tipusDefinit.tipus, adreca));
+			            contadorVariables++;
 			        }
 
 			        // Recorrem totes les variables separades per coma
@@ -1179,7 +1181,7 @@ public class provaParser extends Parser {
 				            System.out.println("No existeix: " + (((TipusDefinitContext)_localctx).TK_IDENT!=null?((TipusDefinitContext)_localctx).TK_IDENT.getText():null));
 				            notifyErrorListeners(((TipusDefinitContext)_localctx).TK_IDENT, "Error: Variable '" + (((TipusDefinitContext)_localctx).TK_IDENT!=null?((TipusDefinitContext)_localctx).TK_IDENT.getText():null) + "' no declarada.", null);
 				        } else {
-				            System.out.println("Existeix: " + (((TipusDefinitContext)_localctx).TK_IDENT!=null?((TipusDefinitContext)_localctx).TK_IDENT.getText():null));
+				            System.out.println("Existeix molt: " + (((TipusDefinitContext)_localctx).TK_IDENT!=null?((TipusDefinitContext)_localctx).TK_IDENT.getText():null));
 				        }
 				    
 				}
