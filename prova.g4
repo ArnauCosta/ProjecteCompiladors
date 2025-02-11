@@ -12,8 +12,7 @@ grammar prova;
 
 @parser::members {
     SymTable TS = new SymTable<Registre>(1001);
-    Bytecode bc=new Bytecode("Lans");
-    Vector<Long> codeMain=new Vector<Long>(1000);
+    Bytecode x;
     int contadorVariables=0;
     Boolean errorsem=false;
     Long saltLinia;
@@ -47,7 +46,13 @@ grammar prova;
 }
 
 // Regla sintactica
-inici : estructuraGeneral EOF;
+inici
+@init {
+//    x=new Bytecode("compilat");
+//    saltLinia=x.addConstant("S","\n");
+//    Vector<Long> trad = new Vector<Long>(10);
+} : estructuraGeneral EOF;
+
 //inici : (tipusDecl | accioFuncioDecl | blocVariables | sentencia)+ EOF ;
 //inici :(~EOF)+ ;
 
@@ -155,31 +160,56 @@ TK_IDENT : LLETRA (LLETRA | DIGIT | '0' | '_' ) * ;
 
 //Estructura Basica
 estructuraGeneral
-    : tipusDecl? accioFuncioDecl? TK_PC_PROGRAMA blocVariables? sentencia+ TK_PC_FPROGRAMA
-    ;
+@init {
+    x=new Bytecode("compilat");
+    saltLinia=x.addConstant("S","\n");
+    Vector<Long> trad = new Vector<Long>(10);
+}
+    : tipusDecl? accioFuncioDecl? TK_PC_PROGRAMA blocVariables? (cc=sentencia {trad.addAll($cc.trad);} )+ TK_PC_FPROGRAMA
+    {    if (!errorsem) {
+             trad.add(x.RETURN);
+             x.addMainCode(10L,10L,trad);
+             x.write();
+         }
+    };
 
 
 // Bloc de declaració de tipus
-tipusDecl
+tipusDecl returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_TIPUS novaDefinicio+ TK_FTIPUS
     ;
 
-novaDefinicio
+novaDefinicio returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_IDENT TK_PUNTS TK_VECTOR TK_TIPUS_BASIC TK_ENTER TK_ENTER (TK_COMA TK_ENTER)* TK_SEMI # DefinicioVector
     | TK_IDENT TK_PUNTS TK_TUPLA TK_LBRACKET campTupla+ TK_RBRACKET TK_FTUPLA # DefinicioTupla
     ;
 
-campTupla
+campTupla returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_IDENT TK_PUNTS TK_TIPUS_BASIC TK_SEMI
     ;
 
 // Bloc d'accions i funcions
-accioFuncioDecl //TODO
+accioFuncioDecl returns [Vector<Long> trad] //TODO
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : accioDecl+
     | funcioDecl+
     ;
 
-accioDecl
+accioDecl returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_ACCIO id=TK_IDENT (TK_LPAREN parametresFormals? TK_RPAREN)? blocVariables? sentencia* TK_FACCIO{
             if (TS.existeix($id.text)) {
                 notifyErrorListeners($id, "Error: Nom ja utilitzat.", null);
@@ -189,7 +219,10 @@ accioDecl
     }
     ;
 
-funcioDecl
+funcioDecl returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_FUNCIO id=TK_IDENT (TK_LPAREN parametresFormals? TK_RPAREN)? TK_RETORNA TK_TIPUS_BASIC blocVariables? sentencia* TK_RETORNA expr TK_FFUNCIO {
         if (TS.existeix($id.text)) {
             notifyErrorListeners($id, "Error: Nom ja utilitzat.", null);
@@ -199,17 +232,26 @@ funcioDecl
     }
     ;
 
-parametresFormals
+parametresFormals returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_PARAM (TK_COMA TK_PARAM)*
     ;
 
 
 // Bloc de declaració de variables
-blocVariables
+blocVariables returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_VARIABLES declaracioVariable* TK_FVARIABLES
     ;
 
-declaracioVariable
+declaracioVariable returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : id1=TK_IDENT (TK_COMA id2+=TK_IDENT)* TK_PUNTS tipusDefinit TK_SEMI
     {
         // Comprovem si la variable ja ha estat declarada
@@ -235,7 +277,10 @@ declaracioVariable
 
 
 
-tipusDefinit returns [char tipus]
+tipusDefinit returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_TIPUS_BASIC {
          if ($TK_TIPUS_BASIC.text.equals("enter")) {
              $tipus='I';
@@ -247,21 +292,23 @@ tipusDefinit returns [char tipus]
      }
     | TK_IDENT
     {
-        // Verificar si la variable existe en la tabla de símbolos
         if (!TS.existeix($TK_IDENT.text)) {
             System.out.println("No existeix: " + $TK_IDENT.text);
             notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
         } else {
-            Registre r = TS.obtenir($TK_IDENT.text)
-            codeMain.add(bc.ILOAD);
-            codeMain.add(new Long(r.getAdreca()));
+            Registre r=(Registre)TS.obtenir($TK_IDENT.text);
+            $trad.add(x.ILOAD);
+            $trad.add(new Long(r.getAdreca()));
             System.out.println("Existeix molt: " + $TK_IDENT.text);
         }
     }
     ;
 
 // Estructures de control sentencia
-sentencia
+sentencia returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : assignacio
     | condicional
     | buclePer
@@ -270,7 +317,10 @@ sentencia
     | operacioLecturaEscritura
     ;
 
-assignacio
+assignacio returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_IDENT TK_ASSIGNACIO expr TK_SEMI {
         // Verificar si la variable existe en la tabla de símbolos
         if (!TS.existeix($TK_IDENT.text)) {
@@ -286,7 +336,10 @@ assignacio
     }
     ;
 
-condicional
+condicional returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_SI e1=expr TK_LLAVORS sentencia* (TK_ALTRAMENT e2+=expr TK_LLAVORS sentencia*)* (TK_ALTRAMENT sentencia*)? TK_FSI
     {
         System.out.println("Primer: " + $e1.tipus);
@@ -302,11 +355,17 @@ condicional
     }
     ;
 
-buclePer
+buclePer returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_PER TK_IDENT TK_EN r=rang TK_FER sentencia* TK_FPER
     ;
 
-bucleMent
+bucleMent returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_MENTRE expr TK_FER sentencia+ TK_FMENTRE
     {
         if ($expr.tipus != 'Z'){
@@ -315,25 +374,37 @@ bucleMent
     }
     ;
 
-cridaAccioFuncio
+cridaAccioFuncio returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_IDENT TK_LPAREN expr (TK_COMA expr)* TK_RPAREN TK_SEMI
     ;
 
 
 // Operacions de lectura i escriptura
-operacioLecturaEscritura
+operacioLecturaEscritura returns [Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_LLEGIR TK_LPAREN TK_IDENT (TK_PUNTS TK_TIPUS_BASIC)? TK_RPAREN TK_SEMI // Lectura
     | TK_ESCRIURE TK_LPAREN expr (TK_COMA expr)* TK_RPAREN TK_SEMI // Escritura
     | TK_ESCRIURE TK_LN TK_LPAREN (expr (TK_COMA expr)*)? TK_RPAREN TK_SEMI // EscrituraLn
     ;
 
 // Rang del bucle 'per'
-rang
+rang returns [Vector<Long> trad, Vector<Long> trad]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : TK_ENTER (TK_COMA TK_ENTER)?
     ;
 
 // Expressions
-expr returns [char tipus]
+expr returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : e1=expr2 ( ( TK_AND | TK_OR | TK_NEGACIO ) e2=expr2)*
     {
         if ($e2.ctx == null) {
@@ -348,7 +419,10 @@ expr returns [char tipus]
     }
     ;
 
-expr2 returns [char tipus]
+expr2 returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : e1=expr3 ( ( TK_MES_GRAN | TK_MES_GRAN_IG | TK_MES_PETIT | TK_MES_PETIT_IG) e2=expr3) *
     {
         if ($e2.ctx == null) {
@@ -378,7 +452,10 @@ expr2 returns [char tipus]
     ;
 
 
-expr3 returns [char tipus]
+expr3 returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : e1=expr4 ( ( TK_SUMA | TK_RESTA ) e2=expr4 )*
     {
         if ($e2.ctx == null) {
@@ -394,8 +471,17 @@ expr3 returns [char tipus]
     ;
 
 
-expr4 returns [char tipus]
-    : e1=expr5 (( TK_MULTIPLICACIO | TK_DIVISIO | TK_MODUL ) e2=expr5)*
+expr4 returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
+    : e1=expr5 (( TK_MULTIPLICACIO {
+
+    } | TK_DIVISIO {
+
+    } | TK_MODUL {
+
+    }) e2=expr5
     {
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
@@ -406,43 +492,91 @@ expr4 returns [char tipus]
         } else {
             $tipus = 'I';
         }
-    }
+    })*
     ;
 
 
-expr5 returns [char tipus]
+
+expr5 returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
     : exprbase {
         $tipus = $exprbase.tipus;
+        $trad = $expr.trad;
     }
     | (TK_NEGACIO exprbase) {
         if ($exprbase.tipus != 'Z') {
             notifyErrorListeners($exprbase.start, "Expr must be boolean", null);
+        } else {
+            $trad=$ee.trad;
+            $trad.add(x.IFEQ);
+            Long salt=8L;
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+            $trad.add(x.BIPUSH);
+            $trad.add(0L);
+            $trad.add(x.GOTO);
+            salt=5L;
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+            $trad.add(x.BIPUSH);
+            $trad.add(1L);
+            $tipus='Z';
         }
     }
     | (TK_MENYS_UNARI exprbase) {
         if ($exprbase.tipus != 'F' && $exprbase.tipus != 'I') {
             notifyErrorListeners($exprbase.start, "Expr must be Int or Float", null);
+        } else {
+            // TODO Fer que traduccio sigui 0 - exprebase.trad
         }
     }
     ;
 
 
-
-exprbase returns [char tipus]
-    : tipusDefinit
+exprbase returns [Vector<Long> trad, char tipus]
+@init 	{
+	$trad=new Vector<Long>(10);
+    }
+    : TK_IDENT
+      {
+          if (!TS.existeix($TK_IDENT.text)) {
+              System.out.println("No existeix: " + $TK_IDENT.text);
+              notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
+          } else {
+              Registre r=(Registre)TS.obtenir($TK_IDENT.text);
+              $trad.add(x.ILOAD);
+              $trad.add(new Long(r.getAdreca()));
+              System.out.println("Existeix molt: " + $TK_IDENT.text);
+          }
+      }
     | TK_LPAREN expr TK_RPAREN {
         $tipus = $expr.tipus;
+        $trad = $expr.trad;
     }
     | cridaAccioFuncio//funcio
     | TK_IDENT TK_LCLAU expr3 TK_RCLAU TK_LCLAU expr3 TK_RCLAU //Acces vector
     | TK_IDENT TK_PUNT TK_IDENT //Tupla
     | TK_ENTER{
         $tipus='I';
+        Long adrecaTemp=x.addConstant("I",$TK_ENTER.text): //afegim a la constant pool
+        trad.add(x.LDC_W);
+        trad.add(x.nByte(adrecaTemp,2));
+        trad.add(x.nByte(adrecaTemp,1));
     }
     | TK_REAL {
         $tipus='F';
+        Long adrecaTemp=x.addConstant("F",$TK_REAL.text): //afegim a la constant pool
+        trad.add(x.LDC_W);
+        trad.add(x.nByte(adrecaTemp,2));
+        trad.add(x.nByte(adrecaTemp,1));
     }
     | TK_BOLEA {
         $tipus='Z';
+        Long adrecaTemp=x.addConstant("Z",$TK_BOLEA.text): //afegim a la constant pool
+        trad.add(x.LDC_W);
+        trad.add(x.nByte(adrecaTemp,2));
+        trad.add(x.nByte(adrecaTemp,1));
     }
     ;

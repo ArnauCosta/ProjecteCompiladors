@@ -64,8 +64,7 @@ p
 	  saltLinia=x.addConstant("S","\n");
 	  Vector<Long> trad = new Vector<Long>(10);
 	  }
-          :
-	  ( cc=c {trad.addAll($cc.trad);} )+
+          : ( cc=c {trad.addAll($cc.trad);} )+
 	  {
 	   	if (!errorsem)
 	   		{
@@ -285,7 +284,6 @@ e3 returns [Vector<Long> trad, char tipus]
          $trad=$ee.trad;
          $tipus=$ee.tipus;
         }
-
 	;
 
 
