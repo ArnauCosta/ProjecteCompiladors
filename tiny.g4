@@ -186,6 +186,7 @@ e returns [Vector<Long> trad, char tipus]
 	   		$trad.add(x.nByte(salt,2));
 	   		$trad.add(x.nByte(salt,1));
 			$trad.add(x.BIPUSH);
+
 			$trad.add(1L);
 			$tipus='Z';
 			}
