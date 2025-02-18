@@ -605,6 +605,7 @@ expr2 returns [Vector<Long> trad, char tipus]
     }
     : e1=expr3 ( ( TK_MES_GRAN | TK_MES_GRAN_IG | TK_MES_PETIT | TK_MES_PETIT_IG) e2=expr3) * //TODO
     {
+        $trad = $e1.trad;
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -619,15 +620,14 @@ expr2 returns [Vector<Long> trad, char tipus]
             $tipus = 'Z';
         }
     }
-    | e1=expr3 (TK_IGUALTAT e2=expr3) * {
-     $tipus = $e1.tipus;
-                $trad = $e1.trad;
+    | e1=expr3 {Vector<Long> trad2 = new Vector<Long>(100);}
+     (TK_IGUALTAT e2=expr3 {trad2.addAll($e2.trad);}) * {
+        $trad = $e1.trad;
         if ($e2.ctx == null) {
-
+            $tipus = $e1.tipus;
         } else if (($e1.tipus == $e2.tipus)) {
-
-            $trad.addAll($e2.trad);
-            $trad.add(x.IF_ICMPNE);
+            $trad.addAll(trad2);
+            $trad.add(x.IF_ICMPEQ);
             Long salt=8L;
             $trad.add(x.nByte(salt,2));
             $trad.add(x.nByte(salt,1));
@@ -646,13 +646,15 @@ expr2 returns [Vector<Long> trad, char tipus]
             notifyErrorListeners($e1.start, "Not matching expresions for comparing", null);
         }
     }
-    | e1=expr3 (TK_DESIGUALTAT e2=expr3) * {
+    | e1=expr3 {Vector<Long> trad2 = new Vector<Long>(100);}
+            (TK_DESIGUALTAT e2=expr3 {trad2.addAll($e2.trad);}) * {
+
+        $trad = $e1.trad;
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
-            $trad = $e1.trad;
         } else if (($e1.tipus == $e2.tipus)) {
-            $trad.addAll($e2.trad);
-            $trad.add(x.IF_ICMPEQ);
+            $trad.addAll(trad2);
+            $trad.add(x.IF_ICMPNE);
             Long salt=8L;
             $trad.add(x.nByte(salt,2));
             $trad.add(x.nByte(salt,1));
@@ -675,11 +677,84 @@ expr2 returns [Vector<Long> trad, char tipus]
     ;
 
 
+//expr3 returns [Vector<Long> trad, char tipus]
+//@init 	{
+//	$trad=new Vector<Long>(100);
+//    }
+//    : e1=expr4 {Vector<Long> trad2 = new Vector<Long>(100);}
+//        ( TK_SUMA e2=expr4 {trad2.addAll($e2.trad);})* { //aqui
+//        if ($e2.ctx == null) {
+//            $tipus = $e1.tipus;
+//            $trad = $e1.trad;
+//        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+//            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
+//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
+//            $trad=$e1.trad;
+//            $trad.addAll(trad2);
+//            $trad.add(x.FADD);
+//            $tipus = 'F';
+//        } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
+//            $trad=$e1.trad;
+//            $trad.add(x.I2F);
+//            $trad.addAll(trad2);
+//            $trad.add(x.FADD);
+//            $tipus = 'F';
+//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
+//            $trad=$e1.trad;
+//            $trad.addAll(trad2);
+//            $trad.add(x.I2F);
+//            $trad.add(x.FADD);
+//            $tipus = 'F';
+//        } else {
+//            $trad=$e1.trad;
+//            $trad.addAll(trad2);
+//            $trad.add(x.IADD);
+//            $tipus = 'I';
+//        }
+//    }
+//    | e1=expr4 {Vector<Long> trad2 = new Vector<Long>(100);}
+//        ( TK_RESTA e2=expr4 {trad2.addAll($e2.trad);})*{
+//        if ($e2.ctx == null) {
+//            $tipus = $e1.tipus;
+//            $trad = $e1.trad;
+//        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+//            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
+//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
+//            $trad=$e1.trad;
+//            $trad.addAll(trad2);
+//            $trad.add(x.FSUB);
+//            $tipus = 'F';
+//        } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
+//            $trad=$e1.trad;
+//            $trad.add(x.I2F);
+//            $trad.addAll(trad2);
+//            $trad.add(x.FSUB);
+//            $tipus = 'F';
+//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
+//            $trad=$e1.trad;
+//            $trad.addAll(trad2);
+//            $trad.add(x.I2F);
+//            $trad.add(x.FSUB);
+//            $tipus = 'F';
+//        } else {
+//            $trad=$e1.trad;
+//            $trad.addAll(trad2);
+//            $trad.add(x.ISUB);
+//            $tipus = 'I';
+//        }
+//    }
+//    ;
+
 expr3 returns [Vector<Long> trad, char tipus]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
-    : e1=expr4 ( TK_SUMA e2=expr4 )* {
+    : e1=expr4 {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+            $trad = $e1.trad;
+        }
+    }( TK_SUMA e2=expr4 {
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -708,49 +783,50 @@ expr3 returns [Vector<Long> trad, char tipus]
             $trad.add(x.IADD);
             $tipus = 'I';
         }
-    }
-    | e1=expr4 ( TK_RESTA e2=expr4 )*{
-        if ($e2.ctx == null) {
-            $tipus = $e1.tipus;
-            $trad = $e1.trad;
-        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
-            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
-        } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
-            $trad=$e1.trad;
-            $trad.addAll($e2.trad);
-            $trad.add(x.FSUB);
-            $tipus = 'F';
-        } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
-            $trad=$e1.trad;
-            $trad.add(x.I2F);
-            $trad.addAll($e2.trad);
-            $trad.add(x.FSUB);
-            $tipus = 'F';
-        } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
-            $trad=$e1.trad;
-            $trad.addAll($e2.trad);
-            $trad.add(x.I2F);
-            $trad.add(x.FSUB);
-            $tipus = 'F';
-        } else {
-            $trad=$e1.trad;
-            $trad.addAll($e2.trad);
-            $trad.add(x.ISUB);
-            $tipus = 'I';
-        }
-    }
-    ;
+    } | TK_RESTA e2=expr4 {
+       if ($e2.ctx == null) {
+           $tipus = $e1.tipus;
+           $trad = $e1.trad;
+       } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+           notifyErrorListeners($e1.start, "Expr can't be boolean", null);
+       } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
+           $trad=$e1.trad;
+           $trad.addAll($e2.trad);
+           $trad.add(x.FSUB);
+           $tipus = 'F';
+       } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
+           $trad=$e1.trad;
+           $trad.add(x.I2F);
+           $trad.addAll($e2.trad);
+           $trad.add(x.FSUB);
+           $tipus = 'F';
+       } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
+           $trad=$e1.trad;
+           $trad.addAll($e2.trad);
+           $trad.add(x.I2F);
+           $trad.add(x.FSUB);
+           $tipus = 'F';
+       } else {
+           $trad=$e1.trad;
+           $trad.addAll($e2.trad);
+           $trad.add(x.ISUB);
+           $tipus = 'I';
+       }
+    })*;
+
 
     expr4 returns [Vector<Long> trad, char tipus]
     @init 	{
     	$trad=new Vector<Long>(100);
     }
-    : e1=expr5 ( TK_MULTIPLICACIO e2=expr5 )* {
+    : e1=expr5 {
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
-
-        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+        }
+    }( TK_MULTIPLICACIO e2=expr5
+    {
+        if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
             notifyErrorListeners($e1.start, "Expr can't be boolean", null);
         } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
             $trad=$e1.trad;
@@ -776,11 +852,9 @@ expr3 returns [Vector<Long> trad, char tipus]
             $tipus = 'I';
         }
     }
-    | e1=expr5 ( TK_DIVISIO e2=expr5 )* {
-        if ($e2.ctx == null) {
-            $tipus = $e1.tipus;
-            $trad = $e1.trad;
-        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
+    | TK_DIVISIO e2=expr5
+    {
+        if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
             notifyErrorListeners($e1.start, "Expr can't be boolean", null);
         } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
             $trad=$e1.trad;
@@ -808,7 +882,8 @@ expr3 returns [Vector<Long> trad, char tipus]
             $tipus = 'F';
         }
     }
-    | e1=expr5 ( TK_DIV_ENTERA e2=expr5 )* {
+    | TK_DIV_ENTERA e2=expr5
+    {
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -821,7 +896,7 @@ expr3 returns [Vector<Long> trad, char tipus]
             $tipus = 'I';
         }
     }
-    | e1=expr5 ( TK_MODUL e2=expr5 )*{
+    | TK_MODUL e2=expr5{
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -833,8 +908,7 @@ expr3 returns [Vector<Long> trad, char tipus]
             $trad.add(x.IREM);
             $tipus = 'I';
         }
-    }
-    ;
+    })*;
 
 expr5 returns [Vector<Long> trad, char tipus]
 @init 	{
