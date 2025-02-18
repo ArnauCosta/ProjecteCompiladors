@@ -198,7 +198,7 @@ campTupla returns [Vector<Long> trad]
     ;
 
 // Bloc d'accions i funcions
-accioFuncioDecl returns [Vector<Long> trad] //TODO
+accioFuncioDecl returns [Vector<Long> trad]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
@@ -354,7 +354,7 @@ assignacio returns [Vector<Long> trad]
     }
     ;
 
-condicional returns [Vector<Long> trad]
+condicional returns [Vector<Long> trad] //TODO
 @init 	{
 	$trad=new Vector<Long>(100);
     }
@@ -373,7 +373,7 @@ condicional returns [Vector<Long> trad]
     }
     ;
 
-buclePer returns [Vector<Long> trad]
+buclePer returns [Vector<Long> trad] //TODO
 @init 	{
 	$trad=new Vector<Long>(100);
     }
@@ -544,7 +544,15 @@ expr returns [Vector<Long> trad, char tipus]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
-    : e1=expr2 ( TK_AND e2=expr2)* {
+    : e1=expr2
+    {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+            $trad = $e1.trad;
+        }
+    }
+    ( TK_AND e2=expr2
+    {
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -559,7 +567,8 @@ expr returns [Vector<Long> trad, char tipus]
             $tipus = 'Z';
         }
     }
-    | e1=expr2 (TK_OR e2=expr2)* {
+    | TK_OR e2=expr2
+    {
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -573,8 +582,8 @@ expr returns [Vector<Long> trad, char tipus]
             $trad.add(x.IOR);
             $tipus = 'Z';
         }
-    }
-    | TK_NEGACIO e1=expr2 { // (1>0 no 2<9)
+    })*
+    | TK_NEGACIO e1=expr2 {
         if ($e1.ctx == null) {
             $tipus = $e1.tipus;
             $trad = $e1.trad;
@@ -603,31 +612,70 @@ expr2 returns [Vector<Long> trad, char tipus]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
-    : e1=expr3 ( ( TK_MES_GRAN | TK_MES_GRAN_IG | TK_MES_PETIT | TK_MES_PETIT_IG) e2=expr3) * //TODO
+    : e1=expr3 {
+        if ($e2.ctx == null) {
+            $tipus = $e1.tipus;
+            $trad = $e1.trad;
+        }
+        Integer opcio = 0;
+    }
+    ( TK_MES_GRAN e2=expr3
+    {
+        opcio = 1;
+    }
+    | TK_MES_GRAN_IG e2=expr3
+    {
+        opcio = 2;
+    }
+    | TK_MES_PETIT e2=expr3
+    {
+        opcio = 3;
+    }
+    | TK_MES_PETIT_IG e2=expr3
+    {
+        opcio = 4;
+    }
+    | TK_IGUALTAT e2=expr3
+    {
+        opcio = 5;
+    }
+    | TK_DESIGUALTAT e2=expr3
+    {
+        opcio = 6;
+    }) ?
     {
         $trad = $e1.trad;
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
-            $trad = $e1.trad;
-        } else if ($e1.tipus != 'Z') {
-            notifyErrorListeners($e1.start, "Expr not boolean", null);
-        } else if ($e2.tipus != 'Z') {
-            notifyErrorListeners($e2.start, "Expr not boolean", null);
-        } else if (($e1.tipus == $e2.tipus)) {
+        } else if (($e1.tipus == $e2.tipus) || (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F'))) { //TODO
+            if($e1.tipus == 'F'){
+                $trad.add(x.F2I);
+            }
+            $trad.addAll($e2.trad);
+            if ($e2.tipus == 'F') {
+                $trad.add(x.F2I);
+            }
 
-            $tipus = 'Z';
-        } else if (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F')){
-            $tipus = 'Z';
-        }
-    }
-    | e1=expr3 {Vector<Long> trad2 = new Vector<Long>(100);}
-     (TK_IGUALTAT e2=expr3 {trad2.addAll($e2.trad);}) * {
-        $trad = $e1.trad;
-        if ($e2.ctx == null) {
-            $tipus = $e1.tipus;
-        } else if (($e1.tipus == $e2.tipus)) {
-            $trad.addAll(trad2);
-            $trad.add(x.IF_ICMPEQ);
+            switch (opcio){
+                case 1:
+                    $trad.add(x.IF_ICMPGT); // Mes gran
+                    break;
+                case 2:
+                    $trad.add(x.IF_ICMPGE); // Mes gran igual
+                    break;
+                case 3:
+                    $trad.add(x.IF_ICMPLT); // Mes petit
+                    break;
+                case 4:
+                    $trad.add(x.IF_ICMPLE); // Mes petit igual
+                    break;
+                case 5:
+                    $trad.add(x.IF_ICMPEQ); // iguals
+                    break;
+                case 6:
+                    $trad.add(x.IF_ICMPNE); // diferents
+                    break;
+            }
             Long salt=8L;
             $trad.add(x.nByte(salt,2));
             $trad.add(x.nByte(salt,1));
@@ -640,110 +688,16 @@ expr2 returns [Vector<Long> trad, char tipus]
             $trad.add(x.BIPUSH);
             $trad.add(1L);
             $tipus = 'Z';
-        } else if (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F')){
-            $tipus = 'Z';
-        } else {
-            notifyErrorListeners($e1.start, "Not matching expresions for comparing", null);
-        }
-    }
-    | e1=expr3 {Vector<Long> trad2 = new Vector<Long>(100);}
-            (TK_DESIGUALTAT e2=expr3 {trad2.addAll($e2.trad);}) * {
 
-        $trad = $e1.trad;
-        if ($e2.ctx == null) {
-            $tipus = $e1.tipus;
-        } else if (($e1.tipus == $e2.tipus)) {
-            $trad.addAll(trad2);
-            $trad.add(x.IF_ICMPNE);
-            Long salt=8L;
-            $trad.add(x.nByte(salt,2));
-            $trad.add(x.nByte(salt,1));
-            $trad.add(x.BIPUSH);
-            $trad.add(0L);
-            $trad.add(x.GOTO);
-            salt=5L;
-            $trad.add(x.nByte(salt,2));
-            $trad.add(x.nByte(salt,1));
-            $trad.add(x.BIPUSH);
-            $trad.add(1L);
-            $tipus = 'Z';
         } else if (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F')){
-            $tipus = 'Z';
-        } else {
-            notifyErrorListeners($e1.start, "Not matching expresions for comparing", null);
-        }
+            if ($e2.tipus == 'I') {
 
+            }
+            $tipus = 'Z';
+        }
     }
     ;
 
-
-//expr3 returns [Vector<Long> trad, char tipus]
-//@init 	{
-//	$trad=new Vector<Long>(100);
-//    }
-//    : e1=expr4 {Vector<Long> trad2 = new Vector<Long>(100);}
-//        ( TK_SUMA e2=expr4 {trad2.addAll($e2.trad);})* { //aqui
-//        if ($e2.ctx == null) {
-//            $tipus = $e1.tipus;
-//            $trad = $e1.trad;
-//        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
-//            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
-//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
-//            $trad=$e1.trad;
-//            $trad.addAll(trad2);
-//            $trad.add(x.FADD);
-//            $tipus = 'F';
-//        } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
-//            $trad=$e1.trad;
-//            $trad.add(x.I2F);
-//            $trad.addAll(trad2);
-//            $trad.add(x.FADD);
-//            $tipus = 'F';
-//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
-//            $trad=$e1.trad;
-//            $trad.addAll(trad2);
-//            $trad.add(x.I2F);
-//            $trad.add(x.FADD);
-//            $tipus = 'F';
-//        } else {
-//            $trad=$e1.trad;
-//            $trad.addAll(trad2);
-//            $trad.add(x.IADD);
-//            $tipus = 'I';
-//        }
-//    }
-//    | e1=expr4 {Vector<Long> trad2 = new Vector<Long>(100);}
-//        ( TK_RESTA e2=expr4 {trad2.addAll($e2.trad);})*{
-//        if ($e2.ctx == null) {
-//            $tipus = $e1.tipus;
-//            $trad = $e1.trad;
-//        } else if (($e1.tipus == 'Z') || ($e2.tipus == 'Z')) {
-//            notifyErrorListeners($e1.start, "Expr can't be boolean", null);
-//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
-//            $trad=$e1.trad;
-//            $trad.addAll(trad2);
-//            $trad.add(x.FSUB);
-//            $tipus = 'F';
-//        } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
-//            $trad=$e1.trad;
-//            $trad.add(x.I2F);
-//            $trad.addAll(trad2);
-//            $trad.add(x.FSUB);
-//            $tipus = 'F';
-//        } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
-//            $trad=$e1.trad;
-//            $trad.addAll(trad2);
-//            $trad.add(x.I2F);
-//            $trad.add(x.FSUB);
-//            $tipus = 'F';
-//        } else {
-//            $trad=$e1.trad;
-//            $trad.addAll(trad2);
-//            $trad.add(x.ISUB);
-//            $tipus = 'I';
-//        }
-//    }
-//    ;
 
 expr3 returns [Vector<Long> trad, char tipus]
 @init 	{

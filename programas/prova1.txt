@@ -27,7 +27,10 @@ programa
     //aixo_es_un_bool := (4 - a - 3) == (((4 - a) + b) - 3);
     //aixo_es_un_bool := a + 3 == ((4 - a) + b) - 3;
     //nom_tipus_nou := a + 15 + b + 10;
-    escriure(2 + 1 * 4 - 3);
+    //escriure(a == 2 + 2 | 23 != 23 & 1 > 0);
+    //escriure(1 != 2 & 2>=3 | no (3*2 > 1*2));
+    escriure(1 == 2);
+    //escriure(2.2 + 1);
     //pepe := a + a - a + a;
 
 fprograma
