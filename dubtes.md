@@ -6,6 +6,5 @@ tractament variables no inicialitzades\
 
 error igualtat? tractament de totes les expresions \
 
-sobretot demanar ==
 
 linea 394

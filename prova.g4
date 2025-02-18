@@ -620,10 +620,12 @@ expr2 returns [Vector<Long> trad, char tipus]
         }
     }
     | e1=expr3 (TK_IGUALTAT e2=expr3) * {
+     $tipus = $e1.tipus;
+                $trad = $e1.trad;
         if ($e2.ctx == null) {
-            $tipus = $e1.tipus;
-            $trad = $e1.trad;
+
         } else if (($e1.tipus == $e2.tipus)) {
+
             $trad.addAll($e2.trad);
             $trad.add(x.IF_ICMPNE);
             Long salt=8L;

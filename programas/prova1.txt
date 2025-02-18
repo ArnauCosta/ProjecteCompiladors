@@ -11,8 +11,9 @@ programa
     //aixo_es_un_real := 7.0;
     //escriure(1+(2-3*2)); //TODO
 
-    //a := 4;
-    //escriure(a == 4);
+    a := 4;
+    b := 2;
+    //escriure(1==2);
 
     //a := 0;
     //mentre a == 4 fer
@@ -21,18 +22,12 @@ programa
     //fmentre
 
     //a := 0;
-    mentre (Cert) fer
-        escriure(3);
-        escriure(3);
-        escriure(6);
-        escriure(3);
-        escriure(3);
-    fmentre
 
     //aixo_es_un_bool := a == 4;
     //aixo_es_un_bool := (4 - a - 3) == (((4 - a) + b) - 3);
     //aixo_es_un_bool := a + 3 == ((4 - a) + b) - 3;
-    //nom_tipus_nou := a * b \ 3;
-    //pepe := a + a - a;
+    nom_tipus_nou := a + b + 3 + 2;
+    escriure(nom_tipus_nou);
+    //pepe := a + a - a + a;
 
 fprograma

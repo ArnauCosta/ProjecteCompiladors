@@ -60,10 +60,10 @@ public class provaParser extends Parser {
 			"'tupla;'", "'ftupla;'", null, null, null, null, "'accio'", "'faccio'", 
 			"'funcio'", "'ffuncio'", "'retorna'", null, "'variables'", "'fvariables'", 
 			null, null, "','", "'.'", "'+'", "'-'", "'*'", "'/'", "'\\'", "'%'", 
-			"'\\u00E2\\u02C6\\u00BC'", "'=='", "'!='", "'<'", "'<='", "'>'", "'>='", 
-			"'no'", "'&'", "'|'", "'..'", "':='", "'si'", "'llavors'", "'altrament'", 
-			"'fsi'", "'en'", "'ln'", "'per'", "'id'", "'fins'", "'fer'", "'fper'", 
-			"'mentre'", "'fmentre'", "'llegir'", "'escriure'"
+			"'\\u223C'", "'=='", "'!='", "'<'", "'<='", "'>'", "'>='", "'no'", "'&'", 
+			"'|'", "'..'", "':='", "'si'", "'llavors'", "'altrament'", "'fsi'", "'en'", 
+			"'ln'", "'per'", "'id'", "'fins'", "'fer'", "'fper'", "'mentre'", "'fmentre'", 
+			"'llegir'", "'escriure'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
@@ -1771,7 +1771,7 @@ public class provaParser extends Parser {
 			            notifyErrorListeners((((BucleMentContext)_localctx).expr!=null?(((BucleMentContext)_localctx).expr.start):null), "Expr not boolean", null);
 			        } else {
 			            ((BucleMentContext)_localctx).trad = ((BucleMentContext)_localctx).ee.trad;
-			            _localctx.trad.add(x.IFEQ);
+			            _localctx.trad.add(x.IFEQ); // TODO revisar per que estava en IFNE
 			            Long salt=trad2.size()+6L;
 			            _localctx.trad.add(x.nByte(salt,2));
 			            _localctx.trad.add(x.nByte(salt,1));
@@ -2504,10 +2504,12 @@ public class provaParser extends Parser {
 					_la = _input.LA(1);
 				}
 
+				     ((Expr2Context)_localctx).tipus =  ((Expr2Context)_localctx).e1.tipus;
+				                ((Expr2Context)_localctx).trad =  ((Expr2Context)_localctx).e1.trad;
 				        if (((Expr2Context)_localctx).e2 == null) {
-				            ((Expr2Context)_localctx).tipus =  ((Expr2Context)_localctx).e1.tipus;
-				            ((Expr2Context)_localctx).trad =  ((Expr2Context)_localctx).e1.trad;
+
 				        } else if ((((Expr2Context)_localctx).e1.tipus == ((Expr2Context)_localctx).e2.tipus)) {
+
 				            _localctx.trad.addAll(((Expr2Context)_localctx).e2.trad);
 				            _localctx.trad.add(x.IF_ICMPNE);
 				            Long salt=8L;
