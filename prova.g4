@@ -88,8 +88,8 @@ DIGIT : '1' .. '9' ;
 fragment
 LLETRA : 'a' .. 'z' | 'A' .. 'Z' ;
 TK_ENTER : '0' | ('+' | '-')? DIGIT (DIGIT|'0')*;
-TK_REAL : [+-]? DIGIT+ ('.' DIGIT+)? ([eE] [+-]? DIGIT+)? ; // Real
-TK_BOLEA: 'true' | 'false'; // Bolea
+TK_REAL : [+-]? (DIGIT|'0')+ ('.' (DIGIT|'0')+)? ([eE] [+-]? DIGIT+)? ; // Real
+TK_BOLEA: 'Cert' | 'Fals'; // Bolea
 TK_TIPUS_BASIC: 'enter' | 'real' | 'boolea';
 // TK_ENTER: ENTER
 // TK_REAL: REAL
@@ -258,9 +258,7 @@ declaracioVariable returns [Vector<Long> trad]
         if (TS.existeix($id1.text)) {
             notifyErrorListeners($id1, "Error: Variable ja declarada.", null);
         } else {
-            int adreca = contadorVariables;
-            TS.inserir($id1.text, new Registre("variable", $tipusDefinit.tipus, adreca));
-            contadorVariables++;
+            TS.inserir($id1.text, new Registre("variable", $tipusDefinit.tipus, contadorVariables++));
         }
 
         // Recorrem totes les variables separades per coma
@@ -269,7 +267,7 @@ declaracioVariable returns [Vector<Long> trad]
             if (TS.existeix(identificador.getText())) {
                 notifyErrorListeners(identificador, "Error: Variable '" + identificador.getText() + "' ja declarada.", null);
             } else {
-                TS.inserir(identificador.getText(), new Registre("variable", $tipusDefinit.tipus));
+                TS.inserir(identificador.getText(), new Registre("variable", $tipusDefinit.tipus, contadorVariables++));
             }
         }
     }
@@ -309,12 +307,24 @@ sentencia returns [Vector<Long> trad]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
-    : assignacio
-    | condicional
-    | buclePer
-    | bucleMent
-    | cridaAccioFuncio
-    | operacioLecturaEscritura
+    : assignacio {
+        $trad = $assignacio.trad;
+    }
+    | condicional {
+        $trad = $condicional.trad;
+    }
+    | buclePer {
+        $trad = $buclePer.trad;
+    }
+    | bucleMent {
+        $trad = $bucleMent.trad;
+    }
+    | cridaAccioFuncio {
+       $trad = $cridaAccioFuncio.trad;
+    }
+    | operacioLecturaEscritura {
+        $trad = $operacioLecturaEscritura.trad;
+    }
     ;
 
 assignacio returns [Vector<Long> trad]
@@ -331,6 +341,14 @@ assignacio returns [Vector<Long> trad]
             Registre r = (Registre) TS.obtenir($TK_IDENT.text);
             if ($expr.tipus != r.getTipus() && !(r.getTipus() == 'F' && $expr.tipus == 'I')){
                 notifyErrorListeners($TK_IDENT, "Error: Type missmatch. " + $expr.tipus + " type cannot be casted to " + r.getTipus(), null);
+            } else if ($expr.tipus == 'F'){
+                $trad=$expr.trad;
+                $trad.add(x.FSTORE);
+                $trad.add(new Long(r.getAdreca()));
+            } else if ($expr.tipus == 'I' | $expr.tipus == 'Z'){
+                $trad=$expr.trad;
+                $trad.add(x.ISTORE);
+                $trad.add(new Long(r.getAdreca()));
             }
         }
     }
@@ -366,11 +384,24 @@ bucleMent returns [Vector<Long> trad]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
-    : TK_MENTRE expr TK_FER sentencia+ TK_FMENTRE
+    : TK_MENTRE ee=expr {Vector<Long> trad2 = new Vector<Long>(100);}
+        TK_FER (cc=sentencia {trad2.addAll($cc.trad);})+ TK_FMENTRE
     {
         if ($expr.tipus != 'Z'){
             notifyErrorListeners($expr.start, "Expr not boolean", null);
+        } else {
+            $trad=$ee.trad;
+            $trad.add(x.IFEQ); // TODO revisar per que estava en IFNE
+            Long salt=trad2.size()+6L;
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+            $trad.addAll(trad2);
+            salt=0L-$trad.size();
+            $trad.add(x.GOTO);
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
         }
+
     }
     ;
 
@@ -415,7 +446,6 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
                         $trad.add(x.nByte(x.mGetBoolean,1));
                         $tipus = 'Z';
                         break;
-
               }
           }
 
@@ -459,19 +489,44 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
 
        }
     }(TK_COMA e2=expr {
+        //$trad=$e2.trad;
+        $trad.addAll($e2.trad);
+        $trad.add(x.INVOKESTATIC);
         switch($e2.tipus){
-            case 'F':
+             case 'F':
+                 $trad.add(x.nByte(x.mPutFloat,2));
+                 $trad.add(x.nByte(x.mPutFloat,1));
+                 $trad.add(x.LDC_W);
+                 $trad.add(x.nByte(saltLinia,2));
+                 $trad.add(x.nByte(saltLinia,1));
+                 $trad.add(x.INVOKESTATIC);
+                 $trad.add(x.nByte(x.mPutString,2));
+                 $trad.add(x.nByte(x.mPutString,1));
+                 break;
 
-                break;
+             case 'I':
+                 $trad.add(x.nByte(x.mPutInt,2));
+                 $trad.add(x.nByte(x.mPutInt,1));
+                 $trad.add(x.LDC_W);
+                 $trad.add(x.nByte(saltLinia,2));
+                 $trad.add(x.nByte(saltLinia,1));
+                 $trad.add(x.INVOKESTATIC);
+                 $trad.add(x.nByte(x.mPutString,2));
+                 $trad.add(x.nByte(x.mPutString,1));
+                 break;
 
-            case 'I':
+             case 'Z':
+                 $trad.add(x.nByte(x.mPutBoolean,2));
+                 $trad.add(x.nByte(x.mPutBoolean,1));
+                 $trad.add(x.LDC_W);
+                 $trad.add(x.nByte(saltLinia,2));
+                 $trad.add(x.nByte(saltLinia,1));
+                 $trad.add(x.INVOKESTATIC);
+                 $trad.add(x.nByte(x.mPutString,2));
+                 $trad.add(x.nByte(x.mPutString,1));
+                 break;
 
-                break;
-
-            case 'Z':
-
-                break;
-       }
+        }
     } )* TK_RPAREN TK_SEMI // Escritura
     | TK_ESCRIURE TK_LN TK_LPAREN (expr (TK_COMA expr)*)? TK_RPAREN TK_SEMI // EscrituraLn
     ;
@@ -728,25 +783,27 @@ expr3 returns [Vector<Long> trad, char tipus]
         } else if (($e1.tipus == 'F') && ($e2.tipus == 'F')){
             $trad=$e1.trad;
             $trad.addAll($e2.trad);
-            $trad.add(x.FMUL);
+            $trad.add(x.FDIV);
             $tipus = 'F';
         } else if (($e1.tipus == 'I') && ($e2.tipus == 'F')){
             $trad=$e1.trad;
             $trad.add(x.I2F);
             $trad.addAll($e2.trad);
-            $trad.add(x.FMUL);
+            $trad.add(x.FDIV);
             $tipus = 'F';
         } else if (($e1.tipus == 'F') && ($e2.tipus == 'I')){
             $trad=$e1.trad;
             $trad.addAll($e2.trad);
             $trad.add(x.I2F);
-            $trad.add(x.FMUL);
+            $trad.add(x.FDIV);
             $tipus = 'F';
         } else {
             $trad=$e1.trad;
+            $trad.add(x.I2F);
             $trad.addAll($e2.trad);
-            $trad.add(x.IMUL);
-            $tipus = 'I';
+            $trad.add(x.I2F);
+            $trad.add(x.FDIV);
+            $tipus = 'F';
         }
     }
     | e1=expr5 ( TK_DIV_ENTERA e2=expr5 )* {
@@ -776,7 +833,6 @@ expr3 returns [Vector<Long> trad, char tipus]
         }
     }
     ;
-
 
 expr5 returns [Vector<Long> trad, char tipus]
 @init 	{
@@ -837,9 +893,14 @@ exprbase returns [Vector<Long> trad, char tipus]
             notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
         } else {
             Registre r=(Registre)TS.obtenir($TK_IDENT.text);
-            $trad.add(x.ILOAD);
+            if (r.getTipus() == 'I' | r.getTipus() == 'Z'){
+                $trad.add(x.ILOAD);
+            } else {
+                $trad.add(x.FLOAD);
+            }
             $trad.add(new Long(r.getAdreca()));
             System.out.println("Existeix molt: " + $TK_IDENT.text);
+            $tipus=r.getTipus();
         }
     }
     | TK_LPAREN expr TK_RPAREN {
@@ -865,7 +926,8 @@ exprbase returns [Vector<Long> trad, char tipus]
     }
     | TK_BOLEA {
         $tipus='Z';
-        Long adrecaTemp=x.addConstant("Z",$TK_BOLEA.text); //afegim a la constant pool
+        System.out.println("Text bool: " + $TK_BOLEA.text);
+        Long adrecaTemp=x.addConstant("Z",$TK_BOLEA.text);
         $trad.add(x.LDC_W);
         $trad.add(x.nByte(adrecaTemp,2));
         $trad.add(x.nByte(adrecaTemp,1));
