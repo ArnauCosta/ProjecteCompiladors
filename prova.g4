@@ -357,28 +357,156 @@ assignacio returns [Vector<Long> trad]
 condicional returns [Vector<Long> trad] //TODO
 @init 	{
 	$trad=new Vector<Long>(100);
+	Vector<Long> trad2 = new Vector<Long>(100);
+	Vector<Long> tradAlt = new Vector<Long>(100);
+	Vector<Vector<Long>> vectorSentencies = new Vector<>();
+	Vector<Long> exprAlt = new Vector<Long>(100);
+	Vector<Long> tradEnd = new Vector<Long>(100);
     }
-    : TK_SI e1=expr TK_LLAVORS sentencia* (TK_ALTRAMENT e2+=expr TK_LLAVORS sentencia*)* (TK_ALTRAMENT sentencia*)? TK_FSI
+    : TK_SI e1=expr TK_LLAVORS (cc=sentencia {trad2.addAll($cc.trad);})*
+    (TK_ALTRAMENT e2+=expr {Vector<Long> subVector = new Vector<>();} TK_LLAVORS (s2=sentencia {subVector.addAll($s2.trad);})* {vectorSentencies.add(subVector);})*
+
+    (TK_ALTRAMENT (s3=sentencia {tradEnd.addAll($s3.trad);})*)? TK_FSI
     {
         System.out.println("Primer: " + $e1.tipus);
         if($e1.tipus != 'Z'){
             notifyErrorListeners($e1.start, "Expr not boolean", null);
         }
+
         for (ExprContext ctx : $e2) {
-            System.out.println("Segon: " + ctx.tipus);
             if(ctx.tipus != 'Z'){
                 notifyErrorListeners(ctx.start, "Expr not boolean", null);
+            } else {
+                //System.out.println("Expr size: " + tradEnd.size());
+            }
+        }
+
+        Long distanciaFinsFinal = 0L;
+        for (int i = 0; i < vectorSentencies.size(); i++) {
+            distanciaFinsFinal += vectorSentencies.get(i).size() + 3L;
+            distanciaFinsFinal += $e2.get(i).trad.size();
+        }
+
+        for (int i = 0; i < vectorSentencies.size(); i++) {
+            System.out.println("||||||||||||||||||| Vector sentencies (" + i + "): " + vectorSentencies.get(i).size());
+
+        }
+
+	   	$trad=$e1.trad;
+	   	$trad.add(x.IFEQ);
+	   	Long salt=trad2.size()+6L;
+	   	$trad.add(x.nByte(salt,2));
+	   	$trad.add(x.nByte(salt,1));
+
+	   	$trad.addAll(trad2);
+
+
+        for (int i = 0; i < $e2.size(); i++) {
+            System.out.println("Distancia final: " + distanciaFinsFinal);
+            System.out.println("Expr: " + $e2.get(i).trad);
+            System.out.println("Trad: " + vectorSentencies.get(i));
+
+            $trad.add(x.GOTO);
+            salt=distanciaFinsFinal+(3L*($e2.size()-i));
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+
+            $trad.addAll($e2.get(i).trad);
+            $trad.add(x.IFEQ);
+            salt=vectorSentencies.get(i).size()+6L;
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+
+            $trad.addAll(vectorSentencies.get(i));
+
+            distanciaFinsFinal -= 3 + vectorSentencies.get(i).size() + $e2.get(i).trad.size();
+        }
+
+        $trad.add(x.GOTO);
+        salt=tradEnd.size()+3L;
+        $trad.add(x.nByte(salt,2));
+        $trad.add(x.nByte(salt,1));
+
+        $trad.addAll(tradEnd);
+    }
+    ;
+
+
+buclePer returns [Vector<Long> trad] //TODO aqui
+@init 	{
+	$trad=new Vector<Long>(100);
+    }
+    : TK_PER TK_IDENT TK_EN r=rang {
+        Vector<Long> trad2 = new Vector<Long>(100);
+        trad2.addAll($r.trad);
+        Vector<Long> trad3 = new Vector<Long>(100);
+    } TK_FER (s=sentencia {trad3.addAll($s.trad);} )* TK_FPER
+    {
+        if (!TS.existeix($TK_IDENT.text)) {
+            System.out.println("No existeix: " + $TK_IDENT.text); // 12 1,4
+            notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' no declarada.", null);
+        } else {
+            Registre r = (Registre) TS.obtenir($TK_IDENT.text);
+            if (r.getTipus() != 'I'){
+                notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' must be int.", null);
+            }
+            else{
+                if (trad2.size()<=3){ // només hi ha un numero
+                    Vector<Long> tradaux = new Vector<Long>(100);
+                    Long adrecaTemp=x.addConstant("I","0"); //afegim a la constant pool
+                    tradaux.add(x.LDC_W);
+                    tradaux.add(x.nByte(adrecaTemp,2));
+                    tradaux.add(x.nByte(adrecaTemp,1));
+                    $trad=tradaux;
+                    $trad.add(x.FSTORE);
+                    $trad.add(new Long(r.getAdreca()));
+                } // n'hi han dos
+                else{
+                    $trad=trad2;
+                    $trad.add(x.FSTORE);
+                    $trad.add(new Long(r.getAdreca()));
+                }
+                System.out.println($trad);
+                $trad.add(x.IFLT);
+
+                //Rest
             }
         }
     }
     ;
 
-buclePer returns [Vector<Long> trad] //TODO
-@init 	{
-	$trad=new Vector<Long>(100);
-    }
-    : TK_PER TK_IDENT TK_EN r=rang TK_FER sentencia* TK_FPER
-    ;
+//buclePer returns [Vector<Long> trad]
+//@init {
+//    $trad = new Vector<Long>(100);
+//}
+//: TK_PER TK_IDENT TK_EN r=rang {
+//    Vector<Long> tradCond = new Vector<Long>(100); // Código de la condición del for
+//    Vector<Long> tradCuerpo = new Vector<Long>(100); // Código del cuerpo del for
+//    Vector<Long> tradIncremento = new Vector<Long>(100); // Código del incremento del for
+//}
+//TK_FER (s=sentencia {tradCuerpo.addAll($s.trad);})* TK_FPER
+//{
+//    $trad.add(x.ILOAD); // Cargar la variable (TK_IDENT)
+//    $trad.addAll($r.trad); // Obtener valores del rango
+//    $trad.add(x.ISTORE); // Guardar el índice inicial
+//
+//    Long inicioBucle = (long) $trad.size();
+//    $trad.addAll(tradCond);
+//    $trad.add(x.IFEQ);
+//    Long saltoSalida = tradCuerpo.size() + tradIncremento.size() + 6L;
+//    $trad.add(x.nByte(saltoSalida, 2));
+//    $trad.add(x.nByte(saltoSalida, 1));
+//
+//    $trad.addAll(tradCuerpo);
+//
+//    $trad.addAll(tradIncremento);
+//
+//    Long saltoInicio = 0L - ($trad.size() - inicioBucle);
+//    $trad.add(x.GOTO);
+//    $trad.add(x.nByte(saltoInicio, 2));
+//    $trad.add(x.nByte(saltoInicio, 1));
+//};
+
 
 bucleMent returns [Vector<Long> trad]
 @init 	{
@@ -391,7 +519,7 @@ bucleMent returns [Vector<Long> trad]
             notifyErrorListeners($expr.start, "Expr not boolean", null);
         } else {
             $trad=$ee.trad;
-            $trad.add(x.IFEQ); // TODO revisar per que estava en IFNE
+            $trad.add(x.IFEQ);
             Long salt=trad2.size()+6L;
             $trad.add(x.nByte(salt,2));
             $trad.add(x.nByte(salt,1));
@@ -401,7 +529,6 @@ bucleMent returns [Vector<Long> trad]
             $trad.add(x.nByte(salt,2));
             $trad.add(x.nByte(salt,1));
         }
-
     }
     ;
 
@@ -532,12 +659,26 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
     ;
 
 // Rang del bucle 'per'
-rang returns [Vector<Long> trad, Vector<Long> trad]
+rang returns [Vector<Long> trad, Integer primer, Integer segon]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
-    : TK_ENTER (TK_COMA TK_ENTER)?
+    : TK_ENTER
+    {
+        $primer = 0;
+        $segon = (int)$TK_ENTER.text - 1;
+    }
+    | id=TK_ENTER TK_COMA id2=TK_ENTER
+    {
+        $primer = (int)$id.text;
+        $segon = (int)$id2.text;
+    }
     ;
+
+//                Long adrecaTemp=x.addConstant("I",$TK_ENTER.text); //afegim a la constant pool
+//                $trad.add(x.LDC_W);
+//                $trad.add(x.nByte(adrecaTemp,2));
+//                $trad.add(x.nByte(adrecaTemp,1));
 
 // Expressions
 expr returns [Vector<Long> trad, char tipus]
@@ -644,18 +785,12 @@ expr2 returns [Vector<Long> trad, char tipus]
         opcio = 6;
     }) ?
     {
+        System.out.println("Opcio: " + opcio);
         $trad = $e1.trad;
         if ($e2.ctx == null) {
             $tipus = $e1.tipus;
-        } else if (($e1.tipus == $e2.tipus) || (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F'))) { //TODO
-            if($e1.tipus == 'F'){
-                $trad.add(x.F2I);
-            }
+        } else if ($e1.tipus != 'F' && $e2.tipus != 'F') {
             $trad.addAll($e2.trad);
-            if ($e2.tipus == 'F') {
-                $trad.add(x.F2I);
-            }
-
             switch (opcio){
                 case 1:
                     $trad.add(x.IF_ICMPGT); // Mes gran
@@ -689,11 +824,52 @@ expr2 returns [Vector<Long> trad, char tipus]
             $trad.add(1L);
             $tipus = 'Z';
 
-        } else if (($e1.tipus == 'F' && $e2.tipus == 'I') || ($e1.tipus == 'I' && $e2.tipus == 'F')){
-            if ($e2.tipus == 'I') {
-
+        } else if ($e1.tipus != 'Z' && $e2.tipus != 'Z') {
+            if($e1.tipus == 'I'){
+                $trad.add(x.I2F);
             }
+
+            $trad.addAll($e2.trad);
+            if ($e2.tipus == 'I') {
+                $trad.add(x.I2F);
+            }
+            $trad.add(x.FCMPL);
+            switch (opcio){
+                case 1:
+                    $trad.add(x.IFGT); // Mes gran
+                    break;
+                case 2:
+                    $trad.add(x.IFGE); // Mes gran igual
+                    break;
+                case 3:
+                    $trad.add(x.IFLT); // Mes petit
+                    break;
+                case 4:
+                    $trad.add(x.IFLE); // Mes petit igual
+                    break;
+                case 5:
+                    $trad.add(x.IFEQ); // iguals
+                    break;
+                case 6:
+                    $trad.add(x.IFNE); // diferents
+                    break;
+            }
+
+            Long salt=8L;
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+            $trad.add(x.BIPUSH);
+            $trad.add(0L);
+            $trad.add(x.GOTO);
+            salt=5L;
+            $trad.add(x.nByte(salt,2));
+            $trad.add(x.nByte(salt,1));
+            $trad.add(x.BIPUSH);
+            $trad.add(1L);
             $tipus = 'Z';
+
+        } else {
+            notifyErrorListeners($e1.start, "Can't evaluate bool and float", null);
         }
     }
     ;
