@@ -355,7 +355,7 @@ assignacio returns [Vector<Long> trad]
     }
     ;
 
-condicional returns [Vector<Long> trad] //TODO
+condicional returns [Vector<Long> trad]
 @init 	{
 	$trad=new Vector<Long>(100);
 	Vector<Long> trad2 = new Vector<Long>(100);
@@ -433,7 +433,7 @@ condicional returns [Vector<Long> trad] //TODO
     ;
 
 
-buclePer returns [Vector<Long> trad] //TODO aqui
+buclePer returns [Vector<Long> trad]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
