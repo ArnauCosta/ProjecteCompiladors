@@ -21,11 +21,11 @@ programa
     //    a := a + 1;
     //fmentre
 
-    //a := 0;
+    a := 0;
 
-    si (Fals) llavors
-        escriure(1);
-        escriure(2);
+    //si (Fals) llavors
+    //    escriure(1);
+    //    escriure(2);
     //altrament (Fals) llavors
     //    escriure(3);
     //    escriure(4);
@@ -39,13 +39,18 @@ programa
     //altrament
     //    escriure(7);
     //    escriure(8);
-    fsi
+    //fsi
 
 
 
-    //per a en 345 fer
+    //per a en 4, 10 fer
+    //    //escriure(a + 23 * 21);
+    //    //escriure(a + 23 * 21 - 23);
     //    escriure(a);
     //fper
+
+    llegir(a);
+    escriureln(a + 4);
 
     //aixo_es_un_bool := a == 4;
     //aixo_es_un_bool := (4 - a - 3) == (((4 - a) + b) - 3);

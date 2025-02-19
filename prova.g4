@@ -143,7 +143,6 @@ TK_LLAVORS: 'llavors';
 TK_ALTRAMENT: 'altrament';
 TK_FSI: 'fsi';
 TK_EN: 'en';
-TK_LN: 'ln';
 TK_PER: 'per';
 TK_ID: 'id';
 TK_FINS: 'fins';
@@ -154,6 +153,8 @@ TK_FMENTRE: 'fmentre';
 
 TK_LLEGIR: 'llegir';
 TK_ESCRIURE: 'escriure';
+TK_ESCRIURELN: 'escriureln';
+
 
 TK_IDENT : LLETRA (LLETRA | DIGIT | '0' | '_' ) * ;
 
@@ -438,9 +439,7 @@ buclePer returns [Vector<Long> trad] //TODO aqui
     }
     : TK_PER TK_IDENT TK_EN r=rang {
         Vector<Long> trad2 = new Vector<Long>(100);
-        trad2.addAll($r.trad);
-        Vector<Long> trad3 = new Vector<Long>(100);
-    } TK_FER (s=sentencia {trad3.addAll($s.trad);} )* TK_FPER
+    } TK_FER (s=sentencia {trad2.addAll($s.trad);} )* TK_FPER
     {
         if (!TS.existeix($TK_IDENT.text)) {
             System.out.println("No existeix: " + $TK_IDENT.text); // 12 1,4
@@ -451,23 +450,49 @@ buclePer returns [Vector<Long> trad] //TODO aqui
                 notifyErrorListeners($TK_IDENT, "Error: Variable '" + $TK_IDENT.text + "' must be int.", null);
             }
             else{
-                if (trad2.size()<=3){ // només hi ha un numero
-                    Vector<Long> tradaux = new Vector<Long>(100);
-                    Long adrecaTemp=x.addConstant("I","0"); //afegim a la constant pool
-                    tradaux.add(x.LDC_W);
-                    tradaux.add(x.nByte(adrecaTemp,2));
-                    tradaux.add(x.nByte(adrecaTemp,1));
-                    $trad=tradaux;
-                    $trad.add(x.FSTORE);
-                    $trad.add(new Long(r.getAdreca()));
-                } // n'hi han dos
-                else{
-                    $trad=trad2;
-                    $trad.add(x.FSTORE);
-                    $trad.add(new Long(r.getAdreca()));
-                }
-                System.out.println($trad);
-                $trad.add(x.IFLT);
+
+                Long adrecaTemp=x.addConstant("I",$r.primer); //afegim a la constant pool
+                $trad.add(x.LDC_W);
+                $trad.add(x.nByte(adrecaTemp,2));
+                $trad.add(x.nByte(adrecaTemp,1));
+                $trad.add(x.ISTORE);
+                $trad.add(new Long(r.getAdreca()));
+
+                $trad.add(x.ILOAD);
+                $trad.add(new Long(r.getAdreca()));
+
+                adrecaTemp=x.addConstant("I",$r.segon); //afegim a la constant pool
+                $trad.add(x.LDC_W);
+                $trad.add(x.nByte(adrecaTemp,2));
+                $trad.add(x.nByte(adrecaTemp,1));
+
+                //System.out.println($trad);
+                $trad.add(x.IF_ICMPGE);
+                Long salt = $trad.size() + (trad2.size() + 0L) + 3L;
+                $trad.add(x.nByte(salt,2));
+                $trad.add(x.nByte(salt,1));
+
+
+                $trad.addAll(trad2);
+
+                $trad.add(x.ILOAD);
+                $trad.add(new Long(r.getAdreca()));
+
+                adrecaTemp=x.addConstant("I","1"); //afegim a la constant pool
+                $trad.add(x.LDC_W);
+                $trad.add(x.nByte(adrecaTemp,2));
+                $trad.add(x.nByte(adrecaTemp,1));
+
+                $trad.add(x.IADD);
+
+                $trad.add(x.ISTORE);
+                $trad.add(new Long(r.getAdreca()));
+
+                salt=0L-($trad.size() - 5L) ;
+                $trad.add(x.GOTO);
+                $trad.add(x.nByte(salt,2));
+                $trad.add(x.nByte(salt,1));
+
 
                 //Rest
             }
@@ -558,6 +583,8 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
                         $trad.add(x.nByte(x.mGetFloat,2));
                         $trad.add(x.nByte(x.mGetFloat,1));
                         $tipus = 'F';
+                        $trad.add(x.FSTORE);
+                        $trad.add(new Long(r.getAdreca()));
                         break;
 
                     case 'I':
@@ -565,6 +592,8 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
                         $trad.add(x.nByte(x.mGetInt,2));
                         $trad.add(x.nByte(x.mGetInt,1));
                         $tipus = 'I';
+                        $trad.add(x.ISTORE);
+                        $trad.add(new Long(r.getAdreca()));
                         break;
 
                     case 'Z':
@@ -572,12 +601,74 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
                         $trad.add(x.nByte(x.mGetBoolean,2));
                         $trad.add(x.nByte(x.mGetBoolean,1));
                         $tipus = 'Z';
+                        $trad.add(x.ISTORE);
+                        $trad.add(new Long(r.getAdreca()));
                         break;
               }
           }
 
     }
     | TK_ESCRIURE TK_LPAREN e1=expr {
+        $trad=$e1.trad;
+        $trad.add(x.INVOKESTATIC);
+        switch($e1.tipus){
+            case 'F':
+                $trad.add(x.nByte(x.mPutFloat,2));
+                $trad.add(x.nByte(x.mPutFloat,1));
+                break;
+
+            case 'I':
+                $trad.add(x.nByte(x.mPutInt,2));
+                $trad.add(x.nByte(x.mPutInt,1));
+                break;
+
+            case 'Z':
+                $trad.add(x.nByte(x.mPutBoolean,2));
+                $trad.add(x.nByte(x.mPutBoolean,1));
+                break;
+
+       }
+    }(TK_COMA e2=expr {
+        //$trad=$e2.trad;
+        $trad.addAll($e2.trad);
+        $trad.add(x.INVOKESTATIC);
+        switch($e2.tipus){
+             case 'F':
+                 $trad.add(x.nByte(x.mPutFloat,2));
+                 $trad.add(x.nByte(x.mPutFloat,1));
+                 $trad.add(x.LDC_W);
+                 $trad.add(x.nByte(saltLinia,2));
+                 $trad.add(x.nByte(saltLinia,1));
+                 $trad.add(x.INVOKESTATIC);
+                 $trad.add(x.nByte(x.mPutString,2));
+                 $trad.add(x.nByte(x.mPutString,1));
+                 break;
+
+             case 'I':
+                 $trad.add(x.nByte(x.mPutInt,2));
+                 $trad.add(x.nByte(x.mPutInt,1));
+                 $trad.add(x.LDC_W);
+                 $trad.add(x.nByte(saltLinia,2));
+                 $trad.add(x.nByte(saltLinia,1));
+                 $trad.add(x.INVOKESTATIC);
+                 $trad.add(x.nByte(x.mPutString,2));
+                 $trad.add(x.nByte(x.mPutString,1));
+                 break;
+
+             case 'Z':
+                 $trad.add(x.nByte(x.mPutBoolean,2));
+                 $trad.add(x.nByte(x.mPutBoolean,1));
+                 $trad.add(x.LDC_W);
+                 $trad.add(x.nByte(saltLinia,2));
+                 $trad.add(x.nByte(saltLinia,1));
+                 $trad.add(x.INVOKESTATIC);
+                 $trad.add(x.nByte(x.mPutString,2));
+                 $trad.add(x.nByte(x.mPutString,1));
+                 break;
+
+        }
+    } )* TK_RPAREN TK_SEMI // Escritura
+    | TK_ESCRIURELN TK_LPAREN e1=expr {
         $trad=$e1.trad;
         $trad.add(x.INVOKESTATIC);
         switch($e1.tipus){
@@ -654,24 +745,23 @@ operacioLecturaEscritura returns [Vector<Long> trad, char tipus]
                  break;
 
         }
-    } )* TK_RPAREN TK_SEMI // Escritura
-    | TK_ESCRIURE TK_LN TK_LPAREN (expr (TK_COMA expr)*)? TK_RPAREN TK_SEMI // EscrituraLn
+    } )* TK_RPAREN TK_SEMI // Escritureln
     ;
 
 // Rang del bucle 'per'
-rang returns [Vector<Long> trad, Integer primer, Integer segon]
+rang returns [Vector<Long> trad, String primer, String segon]
 @init 	{
 	$trad=new Vector<Long>(100);
     }
     : TK_ENTER
     {
-        $primer = 0;
-        $segon = (int)$TK_ENTER.text - 1;
+        $primer = "0";
+        $segon = $TK_ENTER.text;
     }
     | id=TK_ENTER TK_COMA id2=TK_ENTER
     {
-        $primer = (int)$id.text;
-        $segon = (int)$id2.text;
+        $primer = $id.text;
+        $segon = $id2.text;
     }
     ;
 
